@@ -4,12 +4,8 @@
 
 #include "socket.h"
 
+// TODO chosed by os
 #include <fcntl.h>
-#include <netinet/tcp.h>  // for TCP_NODELAY
-#include <string.h>
-#include <strings.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "log.h"
 using namespace tohka;

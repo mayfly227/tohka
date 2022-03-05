@@ -4,7 +4,6 @@
 
 #ifndef TOHKA_TOHKA_POLL_H
 #define TOHKA_TOHKA_POLL_H
-#include <vector>
 
 #include "iowatcher.h"
 #include "noncopyable.h"

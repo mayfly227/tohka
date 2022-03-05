@@ -4,7 +4,6 @@
 
 #include "iobuf.h"
 
-#include <string>
 using namespace tohka;
 
 IoBuf::IoBuf(size_t len) : data_(len) {

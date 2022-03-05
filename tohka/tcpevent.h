@@ -5,9 +5,6 @@
 #ifndef TOHKA_TOHKA_TCPEVENT_H
 #define TOHKA_TOHKA_TCPEVENT_H
 
-#include <functional>
-#include <string>
-#include <utility>
 
 #include "iobuf.h"
 #include "ioevent.h"

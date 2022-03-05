@@ -4,10 +4,6 @@
 
 #ifndef TOHKA_TOHKA_TIMERMANAGER_H
 #define TOHKA_TOHKA_TIMERMANAGER_H
-#include <memory.h>
-
-#include <map>
-#include <vector>
 
 #include "timepoint.h"
 #include "timer.h"

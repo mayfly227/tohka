@@ -5,8 +5,8 @@
 #ifndef TOHKA_TOHKA_TIMEPOINT_H
 #define TOHKA_TOHKA_TIMEPOINT_H
 
-#include <cstdint>
-#include <string>
+#include "platform.h"
+
 namespace tohka {
 class TimePoint {
  public:

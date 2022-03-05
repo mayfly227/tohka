@@ -4,8 +4,6 @@
 
 #ifndef TOHKA_TOHKA_IOEVENT_H
 #define TOHKA_TOHKA_IOEVENT_H
-#include <functional>
-#include <utility>
 
 #include "iowatcher.h"
 #include "noncopyable.h"
@@ -16,10 +14,10 @@ class IoEvent : noncopyable {
  public:
   IoEvent(IoWatcher* io_watcher, int fd);
 
-  // 注册到poll的监听事件中
+  // Register to the monitor event of Poll
   void Register();
 
-  // 从poll的监听事件中取消注册
+  // Unregister to the monitor event of Poll
   void UnRegister();
 
   void ExecuteEvent();

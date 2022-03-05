@@ -5,10 +5,6 @@
 #ifndef TOHKA_TOHKA_ACCEPTOR_H
 #define TOHKA_TOHKA_ACCEPTOR_H
 
-#include <sys/socket.h>
-
-#include <functional>
-
 #include "ioevent.h"
 #include "log.h"
 #include "netaddress.h"

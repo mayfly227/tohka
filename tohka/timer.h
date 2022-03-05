@@ -5,7 +5,6 @@
 #ifndef TOHKA_TOHKA_TIMER_H
 #define TOHKA_TOHKA_TIMER_H
 
-#include <functional>
 
 #include "timepoint.h"
 #include "tohka.h"

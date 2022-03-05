@@ -3,8 +3,6 @@
 //
 #include "timepoint.h"
 
-#include <chrono>
-
 using namespace tohka;
 
 TimePoint TimePoint::now() {

@@ -5,9 +5,6 @@
 #ifndef TOHKA_TOHKA_IOWATCHER_H
 #define TOHKA_TOHKA_IOWATCHER_H
 
-#include <map>
-#include <vector>
-
 #include "noncopyable.h"
 #include "timepoint.h"
 #include "tohka.h"

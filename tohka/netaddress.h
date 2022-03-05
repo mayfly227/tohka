@@ -5,12 +5,8 @@
 #ifndef TOHKA_TOHKA_NETADDRESS_H
 #define TOHKA_TOHKA_NETADDRESS_H
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+#include "platform.h"
 
-#include <any>
-#include <string>
 namespace tohka {
 class NetAddress {
  public:

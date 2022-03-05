@@ -73,12 +73,25 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/select.h>
 #include <sys/socket.h>
-
 #endif
 
 // ANSI C
+#include <assert.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <cstddef>
+
+// c++ header
+#include <any>
+#include <chrono>
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>

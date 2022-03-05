@@ -5,10 +5,10 @@
 #ifndef TOHKA_TOHKA_IOBUF_H
 #define TOHKA_TOHKA_IOBUF_H
 
-#include <vector>
 // prependable = readIndex
 // readable = writeIndex - readIndex
 // writable = size() - writeIndex
+#include "platform.h"
 namespace tohka {
 class IoBuf {
  public:

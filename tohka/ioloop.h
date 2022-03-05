@@ -5,10 +5,9 @@
 #ifndef TOHKA_TOHKA_IOLOOP_H
 #define TOHKA_TOHKA_IOLOOP_H
 
-#include <memory>
-
 #include "ioevent.h"
 #include "iowatcher.h"
+#include "platform.h"
 #include "poll.h"
 #include "timepoint.h"
 #include "timermanager.h"

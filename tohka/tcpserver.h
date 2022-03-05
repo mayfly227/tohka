@@ -5,8 +5,6 @@
 #ifndef TOHKA_TOHKA_TCPSERVER_H
 #define TOHKA_TOHKA_TCPSERVER_H
 
-#include <functional>
-
 #include "acceptor.h"
 #include "iowatcher.h"
 #include "log.h"
