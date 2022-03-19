@@ -39,7 +39,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <direct.h>   // for mkdir,rmdir,chdir,getcwd
-#include <io.h>       // for open,close,read,write,lseek,tell
+#include <io.h>       // for open,Close,read,write,lseek,tell
 #include <process.h>  // for getpid,exec
 #include <windows.h>
 #include <winsock2.h>

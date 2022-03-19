@@ -4,7 +4,7 @@
 
 #include "ioevent.h"
 
-#include "log.h"
+#include "util/log.h"
 
 using namespace tohka;
 
@@ -30,17 +30,20 @@ void IoEvent::ExecuteEvent() {
   // Invalid request and error condition
   if (revents_ & (POLLERR | POLLNVAL)) {
     if (error_callback_) {
+      log_trace("IoEvent::ExecuteEvent() execute error_callback_");
       error_callback_();
     };
   }
   // Readable, urgent (read) and half-closed
   if (revents_ & (POLLIN | POLLPRI | POLLHUP)) {
     if (read_callback_) {
+      log_trace("IoEvent::ExecuteEvent() execute read_callback_");
       read_callback_();
     };
   }
   if (revents_ & POLLOUT) {
     if (write_callback_) {
+      log_trace("IoEvent::ExecuteEvent() execute write_callback_");
       write_callback_();
     };
   }

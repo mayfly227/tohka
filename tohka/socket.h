@@ -21,7 +21,8 @@ class Socket : noncopyable {
   void BindAddress(NetAddress& address) const;
   void Listen() const;
   int Accept(NetAddress* peer_address) const;
-
+  int Connect(NetAddress& peer_address) const;
+  void Close();
   ssize_t Read(void* buffer, size_t len) const;
   ssize_t Write(void* buffer, size_t len) const;
   void SetTcpNoDelay(bool on) const;
@@ -32,11 +33,14 @@ class Socket : noncopyable {
   void SetKeepAlive(bool on) const;
 
   static void SetNonBlockAndCloseOnExec(int sock_fd);
+  // TODO support ipv6 & udp now is ipv4 only
   static int CreateNonBlockFd(int domain = AF_INET, int type = SOCK_STREAM,
                               int protocol = IPPROTO_TCP);
 
  private:
   int fd_;
+  bool closed = false;
+  static constexpr int kBacklog = 512;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_SOCKET_H

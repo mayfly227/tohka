@@ -4,7 +4,7 @@
 
 #include "ioloop.h"
 
-#include "log.h"
+#include "util/log.h"
 
 using namespace tohka;
 
@@ -13,14 +13,13 @@ IoLoop::IoLoop()
       io_watcher_(std::make_unique<Poll>()),  // TODO choose poller by os
       timer_manager_(std::make_unique<TimerManager>()) {
   // init log level
-  //  log_set_level(LOG_INFO);
-  //  log_set_level(LOG_INFO);
+  log_set_level(LOG_INFO);
 }
 
 void IoLoop::RunForever() {
   running_ = true;
   std::vector<IoEvent*> activate_event_list;
-  int i = 10000000;
+  int i = 100;
   while (i--) {
     activate_event_list.clear();
     int64_t next_expired_duration = timer_manager_->GetNextExpiredDuration();

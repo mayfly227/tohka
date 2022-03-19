@@ -20,6 +20,7 @@ Acceptor::Acceptor(IoWatcher* io_watcher, NetAddress bind_address)
 
 void Acceptor::OnAccept() {
   NetAddress peer_address;
+  // TODO ipv6?
   int conn_fd = socket_.Accept(&peer_address);
   if (conn_fd > 0) {
     if (on_accept_) {

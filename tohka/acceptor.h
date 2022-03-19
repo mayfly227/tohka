@@ -6,7 +6,7 @@
 #define TOHKA_TOHKA_ACCEPTOR_H
 
 #include "ioevent.h"
-#include "log.h"
+#include "util/log.h"
 #include "netaddress.h"
 #include "noncopyable.h"
 #include "socket.h"

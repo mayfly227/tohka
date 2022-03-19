@@ -5,8 +5,6 @@
 #ifndef TOHKA_TOHKA_TOHKA_H
 #define TOHKA_TOHKA_TOHKA_H
 // typedef and callbacks
-#include <functional>
-#include <memory>
 
 #include "platform.h"
 
@@ -30,12 +28,23 @@ using ExpiredTimers = std::vector<TimerPrt_t>;
 using EventCallback = std::function<void()>;
 using TimerCallback = std::function<void()>;
 
+// for acceptor
 using OnAcceptCallback =
     std::function<void(int conn_fd, NetAddress& peer_address)>;
+// for connector
+using OnConnectCallback = std::function<void(int sock_fd)>;
+
+// for tcpserver
 using OnConnectionCallback = std::function<void(const TcpEventPrt_t& conn)>;
 using OnMessageCallback =
     std::function<void(const TcpEventPrt_t& conn, IoBuf* buf)>;
+using OnWriteDoneCallback = std::function<void(const TcpEventPrt_t& conn)>;
+
 using OnCloseCallback = std::function<void(const TcpEventPrt_t& conn)>;
+
+// for tcp event
+void DefaultOnConnection(const TcpEventPrt_t& conn);
+void DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf);
 
 #ifdef OS_UNIX
 enum {

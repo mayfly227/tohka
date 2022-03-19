@@ -7,7 +7,7 @@
 // TODO chosed by os
 #include <fcntl.h>
 
-#include "log.h"
+#include "util/log.h"
 using namespace tohka;
 
 Socket::Socket(int domain, int type, int protocol) {
@@ -22,8 +22,8 @@ Socket::Socket(int domain, int type, int protocol) {
 Socket::Socket(int fd) : fd_(fd) {}
 
 Socket::~Socket() {
-  // close socket
-  close(fd_);
+  // Close socket
+  Close();
 }
 void Socket::BindAddress(NetAddress& address) const {
   //  auto s = std::any_cast<sockaddr*>(address.GetAddress());
@@ -36,7 +36,7 @@ void Socket::BindAddress(NetAddress& address) const {
 }
 
 void Socket::Listen() const {
-  int ret = ::listen(fd_, 1024);
+  int ret = ::listen(fd_, kBacklog);
   if (ret < 0) {
     log_error("listen error! errno=%d errstr = %s", errno, strerror(errno));
   }
@@ -46,9 +46,8 @@ int Socket::Accept(NetAddress* peer_address) const {
   socklen_t sock_len = peer_address->GetSize();
   int conn_fd = ::accept(
       fd_, std::any_cast<sockaddr*>(peer_address->GetAddress()), &sock_len);
-  // TODO setnonblocking
   Socket::SetNonBlockAndCloseOnExec(conn_fd);
-  // TODO Test write
+  // TODO For debug only
   int opt = 3;
   if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
                    (socklen_t)(sizeof(opt))) < 0) {
@@ -59,6 +58,12 @@ int Socket::Accept(NetAddress* peer_address) const {
     log_error("bind error! errno=%d errstr = %s", errno, strerror(errno));
   }
   return conn_fd;
+}
+
+int Socket::Connect(NetAddress& peer_address) const {
+  socklen_t sock_len = peer_address.GetSize();
+  return ::connect(fd_, std::any_cast<sockaddr*>(peer_address.GetAddress()),
+                   sock_len);
 }
 
 // TODO socket ops
@@ -103,22 +108,39 @@ ssize_t Socket::Write(void* buffer, size_t len) const {
 
 void Socket::SetNonBlockAndCloseOnExec(int sock_fd) {
   // non-block
+#ifdef OS_UNIX
   int flags = ::fcntl(sock_fd, F_GETFL, 0);
   flags |= O_NONBLOCK;
   int ret = ::fcntl(sock_fd, F_SETFL, flags);
-  // FIXME check
+  if (ret < 0) {
+    log_error("Socket::SetNonBlockAndCloseOnExec [non-block] error!");
+  }
 
-  // close-on-exec
+  // Close-on-exec
   flags = ::fcntl(sock_fd, F_GETFD, 0);
   flags |= FD_CLOEXEC;
   ret = ::fcntl(sock_fd, F_SETFD, flags);
+  if (ret < 0) {
+    log_error("Socket::SetNonBlockAndCloseOnExec [Close-on-exec] error!");
+  }
+
+#elif OS_WIN
+  // TODO win32
+#endif
 }
-// TODO support ipv6 & udp now is ipv4 only
+
 int Socket::CreateNonBlockFd(int domain, int type, int protocol) {
   int sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock < 0) {
     log_error("create socket error! errno=%d errstr = %s", errno,
               strerror(errno));
   }
+  SetNonBlockAndCloseOnExec(sock);
   return sock;
+}
+void Socket::Close() {
+  if (!closed) {
+    ::close(fd_);
+    closed = true;
+  }
 }

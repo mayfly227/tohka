@@ -7,10 +7,10 @@
 
 #include "acceptor.h"
 #include "iowatcher.h"
-#include "log.h"
 #include "noncopyable.h"
 #include "tcpevent.h"
 #include "tohka.h"
+#include "util/log.h"
 
 // manage tcpevent
 namespace tohka {

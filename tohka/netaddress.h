@@ -11,8 +11,8 @@ namespace tohka {
 class NetAddress {
  public:
   NetAddress() = default;
-  NetAddress(const std::string& ip, uint16_t port);
-  NetAddress(std::string ip, int16_t port, bool ipv6);
+  explicit NetAddress(uint16_t port, bool ipv6 = false);
+  NetAddress(const std::string& ip, int16_t port, bool ipv6 = false);
 
   std::string GetIp();
   uint16_t GetPort();
