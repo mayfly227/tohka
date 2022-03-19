@@ -144,3 +144,13 @@ void Socket::Close() {
     closed = true;
   }
 }
+int Socket::GetSocketError() const {
+  int opt_val;
+  auto opt_len = static_cast<socklen_t>(sizeof opt_val);
+
+  if (::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &opt_val, &opt_len) < 0) {
+    return errno;
+  } else {
+    return opt_val;
+  }
+}

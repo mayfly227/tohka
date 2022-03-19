@@ -28,6 +28,7 @@ class IoLoop : public noncopyable {
   void CallEvery(int interval, TimerTask callback);
 
   IoWatcher* GetPoint();
+  static IoLoop* GetLoop();
 
  private:
   using IoWatcherPtr = std::unique_ptr<IoWatcher>;

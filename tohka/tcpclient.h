@@ -11,7 +11,6 @@ namespace tohka {
 class IoWatcher;
 class TcpClient : noncopyable {
  public:
-  using ConnectorPrt_t = std::shared_ptr<Connector>;
   TcpClient(IoWatcher* io_watcher, NetAddress& peer);
   ~TcpClient();
 
@@ -32,6 +31,7 @@ class TcpClient : noncopyable {
   void removeConnection(const TcpEventPrt_t& conn);
   IoWatcher* io_watcher_;
   // 持有连接器有tcp的共享指针
+  using ConnectorPrt_t = std::shared_ptr<Connector>;
   ConnectorPrt_t connector_;
   TcpEventPrt_t connection_;
 

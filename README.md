@@ -4,3 +4,9 @@ Tohka is a cross platform single thread network library, which is designed to le
 
 ## status:developing
 
+**TODO List**
+
+- [ ] bug fixed 😭
+- [ ] connector
+- [ ] linux support
+- [ ] buffer

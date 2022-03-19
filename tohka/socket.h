@@ -32,6 +32,7 @@ class Socket : noncopyable {
   void SetReusePort(bool on) const;
   void SetKeepAlive(bool on) const;
 
+  int GetSocketError() const;
   static void SetNonBlockAndCloseOnExec(int sock_fd);
   // TODO support ipv6 & udp now is ipv4 only
   static int CreateNonBlockFd(int domain = AF_INET, int type = SOCK_STREAM,

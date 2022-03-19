@@ -22,9 +22,21 @@ TcpClient::TcpClient(IoWatcher* io_watcher, NetAddress& peer)
 }
 TcpClient::~TcpClient() {
   log_trace("TcpClient::~TcpClient");
-  if (connection_) {
-    // TODO ShutDown
-    //    connection_->ShutDown();
+  TcpEventPrt_t conn;
+  bool unique;
+  //  unique = (connection_.use_count() == 1);
+  unique = (connection_.unique());
+  conn = connection_;
+
+  if (conn) {
+    //
+    conn->OnDestroying();
+    if (unique) {
+      // TODO forceClose
+      //      conn->forceClose();
+    }
+  } else {
+    connector_->Stop();
   }
 }
 void TcpClient::Connect() {

@@ -37,6 +37,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void SetOnWriteDone(const OnWriteDoneCallback& on_write_done) {
     on_write_done_ = on_write_done;
   };
+  /// Internal use only.
   void SetOnClose(const OnCloseCallback& on_close) { on_close_ = on_close; }
   // Be called when this connection establishing(call on accept)
   void OnEstablishing();

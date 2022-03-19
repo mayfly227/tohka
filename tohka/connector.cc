@@ -26,16 +26,21 @@ void Connector::OnConnect() {
     // 这时连接已经成功，要把poll中的event去掉
     RemoveAndResetEvent();
     // TODO 处理错误
-    // handle error
-    //    if(err){
-    //      do retry
-    //    }
-    SetState(kConnected);
-    if (connect_) {
-      on_connect_(sock_->GetFd());
+    int err = sock_->GetSocketError();
+    //     handle error
+    if (err) {
+      log_trace("Connector::OnConnect err");
+      // 一定后时间重连
+      Retry();
     } else {
-      sock_->Close();
+      if (connect_) {
+        on_connect_(sock_->GetFd());
+      } else {
+        sock_->Close();
+      }
     }
+    SetState(kConnected);
+
   } else {
     assert(state_ == kDisconnected);
   }
@@ -45,6 +50,7 @@ void Connector::Connect() {
 
   int ret = sock_->Connect(peer_);
   int saved_errno = (ret == 0) ? 0 : errno;
+  log_trace("errno = %d", errno);
   switch (saved_errno) {
     case 0:
     case EINPROGRESS:
@@ -119,6 +125,7 @@ void Connector::Stop() {
   connect_ = false;
   if (state_ == kConnecting) {
     SetState(kDisconnected);
+    RemoveAndResetEvent();
     //    int sockfd = removeAndResetChannel();
     //    retry(sockfd);
   }
