@@ -25,6 +25,9 @@ class TcpClient : noncopyable {
   void SetOnWriteDone(OnWriteDoneCallback cb) {
     on_write_done_ = std::move(cb);
   }
+  void SetRetry(bool status) { retry_ = status; }
+
+  bool GetRetry() { return retry_; }
 
  private:
   void onConnect(int sock_fd);
@@ -34,7 +37,7 @@ class TcpClient : noncopyable {
   using ConnectorPrt_t = std::shared_ptr<Connector>;
   ConnectorPrt_t connector_;
   TcpEventPrt_t connection_;
-
+  bool retry_;
   bool connect_;
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;

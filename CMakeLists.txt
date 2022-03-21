@@ -53,6 +53,7 @@ add_executable(test_netaddress tests/test_netaddress.cc)
 add_executable(test_tcpserver.cc tests/test_tcpserver.cc)
 add_executable(test_connector tests/test_connector.cc)
 add_executable(test_tcp_client tests/test_tcp_client.cc)
+add_executable(test_temp tests/test_temp.cc)
 
 
 #Test
@@ -65,6 +66,7 @@ target_link_libraries(test_netaddress tohka)
 target_link_libraries(test_tcpserver.cc tohka)
 target_link_libraries(test_connector tohka)
 target_link_libraries(test_tcp_client tohka)
+target_link_libraries(test_temp tohka)
 
 
 #example

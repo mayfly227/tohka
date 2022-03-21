@@ -33,9 +33,10 @@ TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
 void TcpEvent::HandleRead() {
   log_trace("TcpEvent::HandleRead fd = %d", socket_->GetFd());
   // read(event.GetFd())
-  // TODO should add read fd?
+  // TODO should use iovec?
   char buffer[64 * 1024];
-  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
+  //  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
+  ssize_t n = socket_->Read(buffer, 1);  // read from fd
 
   if (n > 0) {
     in_buf_.Append(buffer, n);
@@ -50,18 +51,25 @@ void TcpEvent::HandleRead() {
 }
 void TcpEvent::HandleWrite() {
   log_trace("TcpEvent::HandleWrite");
-  ssize_t n =
-      socket_->Write((char*)out_buf_.Peek(), out_buf_.GetReadableSize());
-  log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
-  if (n > 0) {
-    out_buf_.Retrieve(n);
-    // Once the data is written, Close the write event immediately to avoid busy
-    // loop
-    if (out_buf_.GetReadableSize() == 0) {
-      // TODO  call write done callback
-      StopWriting();
-      if (on_write_done_) {
-        on_write_done_(shared_from_this());
+  if (event_->IsWriting()) {
+    ssize_t n =
+        socket_->Write((char*)out_buf_.Peek(), out_buf_.GetReadableSize());
+    log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
+    if (n > 0) {
+      out_buf_.Retrieve(n);
+      // Once the data is written, Close the write event immediately to avoid
+      // busy loop
+      if (out_buf_.GetReadableSize() == 0) {
+        log_trace(
+            "[TcpEvent::HandleWrite]->write done and try to stop writing");
+        StopWriting();
+        if (on_write_done_) {
+          on_write_done_(shared_from_this());
+        }
+        //
+        if (state_ == kDisconnecting) {
+          TryEagerShutDown();
+        }
       }
     }
   } else {
@@ -70,13 +78,20 @@ void TcpEvent::HandleWrite() {
 }
 void TcpEvent::HandleClose() {
   assert(state_ == kConnected || state_ == kDisconnecting);
+  SetState(kDisconnected);
   event_->DisableAll();
   if (on_close_) {
     //  close_callback();
     on_close_(shared_from_this());
   }
 }
-void TcpEvent::HandleError() { log_error("TcpEvent::HandleError!"); }
+void TcpEvent::HandleError() {
+  log_error("TcpEvent::HandleError!");
+  int err = socket_->GetSocketError();
+  char buff[512]{};
+  log_trace("Connector::OnError SO_ERROR=%d msg=%s", err,
+            strerror_r(err, buff, sizeof buff));
+}
 TcpEvent::~TcpEvent() {
   assert(state_ == kDisconnected);
   log_trace("TcpEvent::~TcpEvent");
@@ -122,7 +137,6 @@ void TcpEvent::Send(const char* data, size_t len) {
       // may be not write done
       remaining -= n;
       if (remaining == 0) {
-        // TODO write done callback
         if (on_write_done_) {
           on_write_done_(shared_from_this());
         }
@@ -149,4 +163,24 @@ void TcpEvent::Send(const char* data, size_t len) {
 void TcpEvent::Send(IoBuf* buffer) {
   Send(buffer->Peek(), buffer->GetReadableSize());
   buffer->Refresh();
+}
+void TcpEvent::ShutDown() {
+  if (state_ == kConnected) {
+    SetState(kDisconnecting);
+    TryEagerShutDown();
+  }
+}
+void TcpEvent::ForceClose() {
+  if (state_ == kConnected || state_ == kDisconnecting) {
+    SetState(kDisconnecting);
+    // as if we received 0 byte in handleRead();
+    HandleClose();
+  }
+}
+void TcpEvent::TryEagerShutDown() {
+  // we are not writing
+  // 保证没有发送完毕的数据能够发送出去
+  if (!event_->IsWriting()) {
+    socket_->ShutDownWrite();
+  }
 }
