@@ -7,10 +7,10 @@
 
 #include "iobuf.h"
 #include "ioevent.h"
-#include "util/log.h"
 #include "netaddress.h"
 #include "socket.h"
 #include "tohka.h"
+#include "util/log.h"
 
 namespace tohka {
 
@@ -37,16 +37,13 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void SetOnWriteDone(const OnWriteDoneCallback& on_write_done) {
     on_write_done_ = on_write_done;
   };
-  /// Internal use only.
-  void SetOnClose(const OnCloseCallback& on_close) { on_close_ = on_close; }
-  // Be called when this connection establishing(call on accept)
-  void OnEstablishing();
-  // Be called when this connection destroying (call on Close)
-  void OnDestroying();
 
   void Send(std::string_view msg);
   void Send(const char* data, size_t len);
   void Send(IoBuf* buffer);
+
+  void ShutDown();
+  void ForceClose();
 
   bool Connected() { return state_ == kConnected; }
   std::string GetPeerIp() { return peer_.GetIp(); };
@@ -60,12 +57,20 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   IoBuf* GetInputBuf() { return &in_buf_; };
   IoBuf* GetOutputBuf() { return &out_buf_; };
 
+  /// Internal use only.
+  void SetOnClose(const OnCloseCallback& on_close) { on_close_ = on_close; }
+  // Be called when this connection establishing(call on accept)
+  void OnEstablishing();
+  // Be called when this connection destroying (call on Close)
+  void OnDestroying();
+
  private:
   void HandleRead();
   void HandleWrite();
   void HandleClose();
   void HandleError();
 
+  void TryEagerShutDown();
   enum STATE { kConnecting, kConnected, kDisconnecting, kDisconnected };
   IoWatcher* io_watcher_;
   std::unique_ptr<IoEvent> event_;

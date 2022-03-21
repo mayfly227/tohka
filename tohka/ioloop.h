@@ -16,8 +16,6 @@ namespace tohka {
 class IoLoop : public noncopyable {
  public:
   using TimerTask = std::function<void()>;
-  IoLoop();
-
   ~IoLoop() = default;
   void RunForever();
   void Quit() { running_ = false; };
@@ -27,10 +25,11 @@ class IoLoop : public noncopyable {
   void CallLater(int delay, TimerTask callback);
   void CallEvery(int interval, TimerTask callback);
 
-  IoWatcher* GetPoint();
+  IoWatcher* GetWatcherRawPoint();
   static IoLoop* GetLoop();
 
  private:
+  IoLoop();
   using IoWatcherPtr = std::unique_ptr<IoWatcher>;
   using TimerManagerPtr = std::unique_ptr<TimerManager>;
   IoWatcherPtr io_watcher_;

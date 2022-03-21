@@ -63,9 +63,13 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     assert(index >= 0 && index < pfds_.size());
     auto& pfd = pfds_.at(index);
     pfd.events = io_event->GetEvents();
-    pfd.revents = io_event->GetRevents();
-    log_trace("Poll::RegisterEvent update event: fd = %d events=%d revents=%d",
-              io_event->GetFd(), io_event->GetEvents(), io_event->GetRevents());
+    // TODO why
+    pfd.revents = 0;
+    log_trace(
+        "Poll::RegisterEvent update event: fd = %d events=0x%x revents=0x%x",
+        io_event->GetFd(), io_event->GetEvents(), 0);
+    //              io_event->GetFd(), io_event->GetEvents(),
+    //              io_event->GetRevents());
     if (pfd.events == 0) {
       pfd.fd = -io_event->GetFd() - 1;
     }

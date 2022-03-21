@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "ioloop.h"
 #include "util/log.h"
 using namespace tohka;
 
@@ -13,7 +14,8 @@ Connector::Connector(IoWatcher* io_watcher, NetAddress& peer)
     : io_watcher_(io_watcher),
       peer_(peer),
       connect_(false),
-      state_(kDisconnected) {}
+      state_(kDisconnected),
+      retry_delay_ms_(kInitDelayMs) {}
 Connector::~Connector() {
   log_trace("Connector::~Connector");
   assert(!event_);
@@ -25,9 +27,8 @@ void Connector::OnConnect() {
   if (state_ == kConnecting) {
     // 这时连接已经成功，要把poll中的event去掉
     RemoveAndResetEvent();
-    // TODO 处理错误
+    // handle error
     int err = sock_->GetSocketError();
-    //     handle error
     if (err) {
       log_trace("Connector::OnConnect err");
       // 一定后时间重连
@@ -97,6 +98,8 @@ void Connector::Connecting() {
   //  event_.reset(new IoEvent(io_watcher_,sock_.GetFd()));
   event_->SetWriteCallback([this] { OnConnect(); });
   event_->SetErrorCallback([this] { OnError(); });
+  // FIXME bug only on unix
+  event_->SetCloseCallback([this] { OnClose(); });
 
   // 监听写事件，如果socket可写，那么就会触发OnConnect回调
   event_->EnableWriting();
@@ -108,17 +111,23 @@ void Connector::Retry() {
   sock_->Close();
   SetState(kDisconnected);
   // 一定时间后重新尝试连接
-  //  Start();
+  if (connect_) {
+    IoLoop::GetLoop()->CallLater(retry_delay_ms_, [this] { Start(); });
+    retry_delay_ms_ = std::min(retry_delay_ms_ * 2, kMaxDelayMs);
+  } else {
+    log_debug("do not connect");
+  }
 }
 void Connector::OnError() {
   log_error("Connector::OnError state=%d", state_);
   if (state_ == kConnecting) {
     log_trace("Connector::OnError retry");
     RemoveAndResetEvent();
-    //    int sockfd = removeAndResetChannel();
-    //    int err = sockets::getSocketError(sockfd);
-    //    LOG_TRACE << "SO_ERROR = " << err << " " << strerror_tl(err);
-    //    retry(sockfd);
+    int err = sock_->GetSocketError();
+    char buff[512]{};
+    log_trace("Connector::OnError SO_ERROR=%d msg=%s", err,
+              strerror_r(err, buff, sizeof buff));
+    Retry();
   }
 }
 void Connector::Stop() {
@@ -126,14 +135,23 @@ void Connector::Stop() {
   if (state_ == kConnecting) {
     SetState(kDisconnected);
     RemoveAndResetEvent();
-    //    int sockfd = removeAndResetChannel();
     //    retry(sockfd);
   }
 }
 void Connector::RemoveAndResetEvent() {
   event_->DisableAll();
   event_->UnRegister();
-
   ResetEvent();
 }
 void Connector::ResetEvent() { event_.reset(); }
+
+void Connector::OnClose() {
+  log_trace("Connector::OnClose call stop");
+  Stop();
+}
+void Connector::Restart() {
+  SetState(kDisconnected);
+  connect_ = true;
+  retry_delay_ms_ = kInitDelayMs;
+  Start();
+}

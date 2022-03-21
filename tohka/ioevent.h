@@ -62,6 +62,8 @@ class IoEvent : noncopyable {
   int GetFd() const { return fd_; }
   int GetIndex() const { return index_; }
   void SetIndex(int index) { index_ = index; }
+  bool IsWriting() const { return events_ & TOHKA_WRITE; }
+  bool IsReading() const { return events_ & TOHKA_READ; }
 
  private:
   int fd_;

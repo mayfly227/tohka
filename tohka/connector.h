@@ -22,6 +22,7 @@ class Connector {
   }
 
   void Start();
+  void Restart();
   void Stop();
 
   NetAddress& GetPeerAddress() { return peer_; }
@@ -29,6 +30,7 @@ class Connector {
  private:
   enum State { kDisconnected, kConnecting, kConnected };
   void OnConnect();
+  void OnClose();
   void OnError();
   void Connect();
   void Connecting();
@@ -36,6 +38,9 @@ class Connector {
   void RemoveAndResetEvent();
   void ResetEvent();
 
+  static constexpr int kInitDelayMs = 500;
+  static constexpr int kMaxDelayMs = 30 * 1000;
+  int retry_delay_ms_;
   void SetState(State s) { state_ = s; };
   IoWatcher* io_watcher_;
   std::unique_ptr<Socket> sock_;

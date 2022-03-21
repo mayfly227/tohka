@@ -17,31 +17,36 @@ IoEvent::IoEvent(IoWatcher* io_watcher, int fd)
 void IoEvent::ExecuteEvent() {
   log_trace("fd = %d IoEvent::ExecuteEvent() revents=0x%x", fd_, revents_);
   // Hung up and no data to read
-  if ((revents_ & POLLHUP) && !(revents_ & POLLIN)) {
+  //  if ((revents_ & POLLHUP) && !(revents_ & POLLIN)) {
+  if ((revents_ & 0x0010) && !(revents_ & 0x0001)) {
     log_warn("IoEvent::ExecuteEvent() hung up");
     if (close_callback_) {
       close_callback_();
     };
   }
   // fd is not an opened file
-  if (revents_ & POLLNVAL) {
+  //  if (revents_ & POLLNVAL) {
+  if (revents_ & 0x0020) {
     log_warn("fd=%d IoEvent::ExecuteEvent() POLLNVAL", fd_);
   }
   // Invalid request and error condition
-  if (revents_ & (POLLERR | POLLNVAL)) {
+  //  if (revents_ & (POLLERR | POLLNVAL)) {
+  if (revents_ & (0x0008 | 0x0020)) {
     if (error_callback_) {
       log_trace("IoEvent::ExecuteEvent() execute error_callback_");
       error_callback_();
     };
   }
   // Readable, urgent (read) and half-closed
-  if (revents_ & (POLLIN | POLLPRI | POLLHUP)) {
+  //  if (revents_ & (POLLIN | POLLPRI | POLLHUP)) {
+  if (revents_ & (0x0001 | 0x0002 | 0x0010)) {
     if (read_callback_) {
       log_trace("IoEvent::ExecuteEvent() execute read_callback_");
       read_callback_();
     };
   }
-  if (revents_ & POLLOUT) {
+  //  if (revents_ & POLL_OUT) {
+  if (revents_ & 0x0004) {
     if (write_callback_) {
       log_trace("IoEvent::ExecuteEvent() execute write_callback_");
       write_callback_();

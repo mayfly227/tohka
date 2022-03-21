@@ -23,6 +23,7 @@ Socket::Socket(int fd) : fd_(fd) {}
 
 Socket::~Socket() {
   // Close socket
+  log_info("Socket::~Socket");
   Close();
 }
 void Socket::BindAddress(NetAddress& address) const {
@@ -66,7 +67,6 @@ int Socket::Connect(NetAddress& peer_address) const {
                    sock_len);
 }
 
-// TODO socket ops
 void Socket::SetTcpNoDelay(bool on) const {
   int opt = on ? 1 : 0;
   if (::setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &opt,
@@ -152,5 +152,10 @@ int Socket::GetSocketError() const {
     return errno;
   } else {
     return opt_val;
+  }
+}
+void Socket::ShutDownWrite() const {
+  if (::shutdown(fd_, SHUT_WR) < 0) {
+    log_error("[Socket::ShutDownWrite]->shutdownWrite fd=%d", fd_);
   }
 }

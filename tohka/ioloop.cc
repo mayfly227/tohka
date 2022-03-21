@@ -56,7 +56,7 @@ void IoLoop::CallEvery(int interval, IoLoop::TimerTask callback) {
       std::make_unique<Timer>(when, std::move(callback), interval, true);
   timer_manager_->AddTimer(when, std::move(timer));
 }
-IoWatcher* IoLoop::GetPoint() { return io_watcher_.get(); }
+IoWatcher* IoLoop::GetWatcherRawPoint() { return io_watcher_.get(); }
 IoLoop* IoLoop::GetLoop() {
   static IoLoop loop;
   return &loop;

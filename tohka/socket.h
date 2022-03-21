@@ -22,6 +22,7 @@ class Socket : noncopyable {
   void Listen() const;
   int Accept(NetAddress* peer_address) const;
   int Connect(NetAddress& peer_address) const;
+  void ShutDownWrite() const;
   void Close();
   ssize_t Read(void* buffer, size_t len) const;
   ssize_t Write(void* buffer, size_t len) const;
