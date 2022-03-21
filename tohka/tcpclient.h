@@ -11,7 +11,7 @@ namespace tohka {
 class IoWatcher;
 class TcpClient : noncopyable {
  public:
-  TcpClient(IoWatcher* io_watcher, NetAddress& peer);
+  TcpClient(IoWatcher* io_watcher, const NetAddress& peer, std::string name);
   ~TcpClient();
 
   void Connect();
@@ -27,7 +27,7 @@ class TcpClient : noncopyable {
   }
   void SetRetry(bool status) { retry_ = status; }
 
-  bool GetRetry() { return retry_; }
+  bool GetRetry() const { return retry_; }
 
  private:
   void onConnect(int sock_fd);
@@ -42,9 +42,7 @@ class TcpClient : noncopyable {
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;
   OnWriteDoneCallback on_write_done_;
-
-  //  void DefaultOnConnection(const TcpEventPrt_t& conn);
-  //  void DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf);
+  std::string name_;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_TCPCLIENT_H

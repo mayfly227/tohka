@@ -4,14 +4,18 @@
 
 #include "tcpclient.h"
 
+#include <utility>
+
 #include "iobuf.h"
 #include "tcpevent.h"
 #include "util/log.h"
 
 using namespace tohka;
 
-TcpClient::TcpClient(IoWatcher* io_watcher, NetAddress& peer)
+TcpClient::TcpClient(IoWatcher* io_watcher, const NetAddress& peer,
+                     std::string name)
     : io_watcher_(io_watcher),
+      name_(std::move(name)),
       connector_(std::make_shared<Connector>(io_watcher_, peer)),
       on_message_(DefaultOnMessage),
       on_connection_(DefaultOnConnection),
@@ -22,14 +26,14 @@ TcpClient::TcpClient(IoWatcher* io_watcher, NetAddress& peer)
       std::bind(&TcpClient::onConnect, this, std::placeholders::_1));
 }
 TcpClient::~TcpClient() {
-  log_trace("TcpClient::~TcpClient");
+  log_trace("[TcpClient::~TcpClient]");
   TcpEventPrt_t conn;
   bool unique;
   unique = (connection_.use_count() == 1);
   conn = connection_;
   if (conn) {
     //
-    conn->OnDestroying();
+    conn->ConnectDestroyed();
     if (unique) {
       conn->ForceClose();
     }
@@ -45,7 +49,10 @@ void TcpClient::Connect() {
 }
 void TcpClient::Disconnect() {
   connect_ = false;
-  connection_->ShutDown();
+  // 连接端还未正式连接成功
+  if (connection_) {
+    connection_->ShutDown();
+  }
 }
 void TcpClient::Stop() {
   connect_ = false;
@@ -68,14 +75,14 @@ void TcpClient::onConnect(int sock_fd) {
 
   // 把新连接托管给tcp client管理
   connection_ = new_conn;
-  new_conn->OnEstablishing();
+  new_conn->ConnectEstablished();
 }
 
 void TcpClient::removeConnection(const TcpEventPrt_t& conn) {
   log_trace("TcpClient::removeConnection");
   assert(connection_ == conn);
   connection_.reset();
-  conn->OnDestroying();
+  conn->ConnectDestroyed();
   if (retry_ && connect_) {
     log_info("[TcpClient::removeConnection]->try to reconnecting to %s",
              connector_->GetPeerAddress().GetIpAndPort().c_str());

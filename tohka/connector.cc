@@ -10,7 +10,7 @@
 #include "util/log.h"
 using namespace tohka;
 
-Connector::Connector(IoWatcher* io_watcher, NetAddress& peer)
+Connector::Connector(IoWatcher* io_watcher, const NetAddress& peer)
     : io_watcher_(io_watcher),
       peer_(peer),
       connect_(false),
@@ -115,7 +115,7 @@ void Connector::Retry() {
     IoLoop::GetLoop()->CallLater(retry_delay_ms_, [this] { Start(); });
     retry_delay_ms_ = std::min(retry_delay_ms_ * 2, kMaxDelayMs);
   } else {
-    log_debug("do not connect");
+    log_debug("[Connector::Retry]->do not reconnect");
   }
 }
 void Connector::OnError() {
@@ -135,7 +135,7 @@ void Connector::Stop() {
   if (state_ == kConnecting) {
     SetState(kDisconnected);
     RemoveAndResetEvent();
-    //    retry(sockfd);
+    Retry();
   }
 }
 void Connector::RemoveAndResetEvent() {

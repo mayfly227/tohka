@@ -25,7 +25,7 @@ void IoEvent::ExecuteEvent() {
     };
   }
   // fd is not an opened file
-  //  if (revents_ & POLLNVAL) {
+  //    if (revents_ & POLLNVAL) {
   if (revents_ & 0x0020) {
     log_warn("fd=%d IoEvent::ExecuteEvent() POLLNVAL", fd_);
   }

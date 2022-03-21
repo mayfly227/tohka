@@ -14,7 +14,7 @@ class IoWatcher;
 
 class Connector {
  public:
-  Connector(IoWatcher* io_watcher, NetAddress& peer);
+  Connector(IoWatcher* io_watcher, const NetAddress& peer);
   ~Connector();
 
   void SetOnConnect(OnConnectCallback on_connect) {

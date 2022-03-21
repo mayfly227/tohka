@@ -20,7 +20,7 @@ void IoLoop::RunForever() {
   running_ = true;
   std::vector<IoEvent*> activate_event_list;
   int i = 100;
-  while (i--) {
+  while (true) {
     activate_event_list.clear();
     int64_t next_expired_duration = timer_manager_->GetNextExpiredDuration();
 

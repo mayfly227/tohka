@@ -36,7 +36,8 @@ void TcpEvent::HandleRead() {
   // TODO should use iovec?
   char buffer[64 * 1024];
   //  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
-  ssize_t n = socket_->Read(buffer, 1);  // read from fd
+  // TODO debugonly
+  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
 
   if (n > 0) {
     in_buf_.Append(buffer, n);
@@ -80,6 +81,8 @@ void TcpEvent::HandleClose() {
   assert(state_ == kConnected || state_ == kDisconnecting);
   SetState(kDisconnected);
   event_->DisableAll();
+  // call user callback
+  on_connection_(shared_from_this());
   if (on_close_) {
     //  close_callback();
     on_close_(shared_from_this());
@@ -97,7 +100,7 @@ TcpEvent::~TcpEvent() {
   log_trace("TcpEvent::~TcpEvent");
 }
 
-void TcpEvent::OnEstablishing() {
+void TcpEvent::ConnectEstablished() {
   assert(state_ == kConnecting);
   SetState(kConnected);
   StartReading();
@@ -107,7 +110,7 @@ void TcpEvent::OnEstablishing() {
     on_connection_(shared_from_this());
   }
 }
-void TcpEvent::OnDestroying() {
+void TcpEvent::ConnectDestroyed() {
   if (state_ == kConnected) {
     SetState(kDisconnected);
     // TODO FIXME:why TcpEvent::HandleClose() call event_->DisableAll();

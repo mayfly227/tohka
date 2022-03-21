@@ -16,14 +16,15 @@ TcpServer::TcpServer(IoWatcher* io_watcher, NetAddress& bind_address)
 }
 TcpServer::~TcpServer() {
   for (const auto& item : connection_map_) {
-    item.second->OnDestroying();
+    item.second->ConnectDestroyed();
   }
 }
 
 // call OnConnectionCallback
 void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   auto name = peer_address.GetIpAndPort();
-  log_info("new connection from %s fd = %d", name.c_str(), conn_fd);
+  log_info("[TcpServer::OnAccept]->new connection from %s fd = %d",
+           name.c_str(), conn_fd);
   auto new_conn =
       std::make_shared<TcpEvent>(io_watcher_, name, conn_fd, peer_address);
 
@@ -35,8 +36,8 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   new_conn->SetOnClose(
       std::bind(&TcpServer::OnClose, this, std::placeholders::_1));
 
-  // call OnEstablishing
-  new_conn->OnEstablishing();
+  // call ConnectEstablished
+  new_conn->ConnectEstablished();
 }
 void TcpServer::OnClose(const TcpEventPrt_t& conn) {
   auto name = conn->GetName();
@@ -44,7 +45,8 @@ void TcpServer::OnClose(const TcpEventPrt_t& conn) {
   // remove from conn map
   auto status = connection_map_.erase(name);
   assert(status == 1);
-  log_info("remove connection from %s fd = %d", name.c_str(), fd);
-  conn->OnDestroying();
+  log_info("[TcpServer::OnClose]->remove connection from %s fd = %d",
+           name.c_str(), fd);
+  conn->ConnectDestroyed();
 }
 void TcpServer::Run() { acceptor_->Listen(); }
