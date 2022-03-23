@@ -26,6 +26,9 @@ class Socket : noncopyable {
   void Close();
   ssize_t Read(void* buffer, size_t len) const;
   ssize_t Write(void* buffer, size_t len) const;
+#ifdef OS_UNIX
+  ssize_t ReadV(const struct iovec* vec, int len) const;
+#endif
   void SetTcpNoDelay(bool on) const;
 
   void SetReuseAddress(bool on) const;

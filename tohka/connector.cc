@@ -11,11 +11,11 @@
 using namespace tohka;
 
 Connector::Connector(IoWatcher* io_watcher, const NetAddress& peer)
-    : io_watcher_(io_watcher),
+    : retry_delay_ms_(kInitDelayMs),
+      io_watcher_(io_watcher),
       peer_(peer),
-      connect_(false),
       state_(kDisconnected),
-      retry_delay_ms_(kInitDelayMs) {}
+      connect_(false) {}
 Connector::~Connector() {
   log_trace("Connector::~Connector");
   assert(!event_);
@@ -98,7 +98,8 @@ void Connector::Connecting() {
   //  event_.reset(new IoEvent(io_watcher_,sock_.GetFd()));
   event_->SetWriteCallback([this] { OnConnect(); });
   event_->SetErrorCallback([this] { OnError(); });
-  // FIXME bug only on unix
+  // FIXME bug only on unix(connect to unbind localhost will trigger
+  // onclose[POLLHUP])
   event_->SetCloseCallback([this] { OnClose(); });
 
   // 监听写事件，如果socket可写，那么就会触发OnConnect回调
@@ -125,8 +126,8 @@ void Connector::OnError() {
     RemoveAndResetEvent();
     int err = sock_->GetSocketError();
     char buff[512]{};
-    log_trace("Connector::OnError SO_ERROR=%d msg=%s", err,
-              strerror_r(err, buff, sizeof buff));
+    strerror_r(err, buff, sizeof buff);
+    log_trace("Connector::OnError SO_ERROR=%d msg=%s", err, buff);
     Retry();
   }
 }

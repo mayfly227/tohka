@@ -15,6 +15,7 @@ Poll::Poll() { pfds_.reserve(kInitialSize); }
 TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
   //调用poll 并构造活动的事件
   int active_events = poll(pfds_.data(), pfds_.size(), timeout);
+  log_warn("pdfs = %d", pfds_.size());
   if (active_events > 0) {
     log_trace("Poll::PollEvents %d events happened", active_events);
     for (const auto pfd : pfds_) {
@@ -23,7 +24,7 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
         assert(it != io_events_map.end());
         IoEvent* event = it->second;
         assert(pfd.fd == event->GetFd());
-        event->SetEvents(pfd.events);
+        //        event->SetEvents(pfd.events);
         event->SetRevents(pfd.revents);
         event_list->emplace_back(event);
         --active_events;

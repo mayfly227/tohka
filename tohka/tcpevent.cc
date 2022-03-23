@@ -17,11 +17,11 @@ void tohka::DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf) {
 TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
                    NetAddress& peer)
     : io_watcher_(io_watcher),
-      name_(std::move(name)),
-      state_(kConnecting),
-      socket_(std::make_unique<Socket>(fd)),
       event_(std::make_unique<IoEvent>(io_watcher, fd)),
-      peer_(peer) {
+      socket_(std::make_unique<Socket>(fd)),
+      peer_(peer),
+      name_(std::move(name)),
+      state_(kConnecting) {
   socket_->SetKeepAlive(true);
 
   event_->SetReadCallback([this] { HandleRead(); });
@@ -33,14 +33,45 @@ TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
 void TcpEvent::HandleRead() {
   log_trace("TcpEvent::HandleRead fd = %d", socket_->GetFd());
   // read(event.GetFd())
-  // TODO should use iovec?
-  char buffer[64 * 1024];
-  //  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
-  // TODO debugonly
-  ssize_t n = socket_->Read(buffer, 64 * 1024);  // read from fd
 
+  //  ssize_t n = socket_->Read(ext_buf, 64 * 1024);  // read from fd
+  // TODO debug only(set read ext_buf size=1)
+
+  ssize_t n;
+  // TODO only support unix (support windows)
+#if defined(OS_UNIX1)
+  char ext_buf[65535];
+  struct iovec vec[2];
+  //  size_t writeable_size = in_buf_.GetWriteableSize();
+  vec[0].iov_base = in_buf_.Begin() + in_buf_.GetWriteIndex();
+  vec[0].iov_len = in_buf_.GetWriteableSize();
+  vec[1].iov_base = ext_buf;
+  vec[1].iov_len = sizeof(ext_buf);
+  const int vec_number = (in_buf_.GetWriteableSize() < sizeof(ext_buf)) ? 2 : 1;
+  //  ssize_t n = socket_->Read(ext_buf, 64 * 1024);  // read from fd
+  n = socket_->ReadV(vec, vec_number);  // read from fd
+  if (n < 0) {
+    int save_errno = errno;
+    //    也就是说还没有占满预分配的vector
+  } else if (n <= in_buf_.GetWriteableSize()) {
+    in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);
+  } else {
+    in_buf_.SetWriteIndex(in_buf_.GetBufferSize());
+    // FIXME while n - writeable > 65535
+    in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
+  }
+#elif defined(OS_UNIX)
+  char ext_buf[65535];
+  // TODO copy or increase a system call？
+  //  int can_write = in_buf_.GetWriteableSize();
+  n = socket_->Read(ext_buf, 65535);  // read from fd
   if (n > 0) {
-    in_buf_.Append(buffer, n);
+    in_buf_.Append(ext_buf, n);
+  }
+#endif
+  // check
+  if (n > 0) {
+    //    in_buf_.Append(ext_buf, n);
     // call msg callback
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
@@ -89,15 +120,15 @@ void TcpEvent::HandleClose() {
   }
 }
 void TcpEvent::HandleError() {
-  log_error("TcpEvent::HandleError!");
   int err = socket_->GetSocketError();
-  char buff[512]{};
-  log_trace("Connector::OnError SO_ERROR=%d msg=%s", err,
-            strerror_r(err, buff, sizeof buff));
+  char buff[256]{};
+  strerror_r(err, buff, sizeof buff);
+  log_error("TcpEvent::HandleError SO_ERROR=%d msg=%s fd=%d", err, buff,
+            socket_->GetFd());
 }
 TcpEvent::~TcpEvent() {
+  log_debug("TcpEvent::~TcpEvent");
   assert(state_ == kDisconnected);
-  log_trace("TcpEvent::~TcpEvent");
 }
 
 void TcpEvent::ConnectEstablished() {

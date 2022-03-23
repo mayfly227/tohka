@@ -55,8 +55,8 @@ static void stdout_callback(log_Event* ev) {
             level_colors[ev->level], level_strings[ev->level], ev->file,
             ev->line);
 #else
-  fprintf(ev->udata, "%s %-5s %s:%d: ", buf, level_strings[ev->level], ev->file,
-          ev->line);
+  fprintf(static_cast<FILE*>(ev->udata), "%s %-5s %s:%d: ", buf,
+          level_strings[ev->level], ev->file, ev->line);
 #endif
   ::vfprintf(static_cast<FILE*>(ev->udata), ev->fmt, ev->ap);
   ::fprintf(static_cast<FILE*>(ev->udata), "\n");

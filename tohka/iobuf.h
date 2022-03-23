@@ -12,10 +12,10 @@
 namespace tohka {
 class IoBuf {
  public:
-  static constexpr size_t kPreparedSize = 2048;
+  static constexpr size_t kPreparedSize = 4096;
   static constexpr size_t kPrependSize = 16;
 
-  explicit IoBuf(size_t len = kPreparedSize);
+  explicit IoBuf(size_t len = kPreparedSize + kPrependSize);
   // append data to buffer
   void Append(const char* data, size_t len);
   void Append(const void* data, size_t len);
@@ -23,8 +23,9 @@ class IoBuf {
   std::string ReceiveAllAsString();
 
   // Get the first pointer of readable data
-  const char* Peek() { return data_.data() + read_index_; }
+  const char* Peek() { return Begin() + read_index_; }
 
+  char* Begin() { return data_.data(); };
   void Retrieve(size_t len);
   void Refresh();
 
@@ -32,8 +33,12 @@ class IoBuf {
   size_t GetWriteableSize() { return data_.size() - write_index_; }
   size_t GetReadIndex() const { return read_index_; }
   size_t GetWriteIndex() const { return write_index_; }
+
+  void SetWriteIndex(size_t index) { write_index_ = index; }
   void EnsureWritableBytes(size_t len);
   void MakeSpace(size_t len);
+
+  size_t GetBufferSize() { return data_.size(); };
 
  private:
   size_t read_index_;

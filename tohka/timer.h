@@ -19,8 +19,8 @@ class Timer {
         bool repeat = false)
       : expired_time_(expired_time),
         timer_callback_(std::move(timer_callback)),
-        delay_{delay},
-        repeat_{repeat} {};
+        repeat_{repeat},
+        delay_{delay} {};
   void run() { timer_callback_(); }
 
   TimePoint GetExpiredTime() const { return expired_time_; }

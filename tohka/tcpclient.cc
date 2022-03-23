@@ -15,12 +15,12 @@ using namespace tohka;
 TcpClient::TcpClient(IoWatcher* io_watcher, const NetAddress& peer,
                      std::string name)
     : io_watcher_(io_watcher),
-      name_(std::move(name)),
       connector_(std::make_shared<Connector>(io_watcher_, peer)),
-      on_message_(DefaultOnMessage),
-      on_connection_(DefaultOnConnection),
+      retry_(false),
       connect_(true),
-      retry_(false) {
+      on_connection_(DefaultOnConnection),
+      on_message_(DefaultOnMessage),
+      name_(std::move(name)) {
   // socket writeable
   connector_->SetOnConnect(
       std::bind(&TcpClient::onConnect, this, std::placeholders::_1));

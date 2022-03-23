@@ -49,14 +49,15 @@ int Socket::Accept(NetAddress* peer_address) const {
       fd_, std::any_cast<sockaddr*>(peer_address->GetAddress()), &sock_len);
   Socket::SetNonBlockAndCloseOnExec(conn_fd);
   // TODO For debug only
-  int opt = 3;
-  if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
-                   (socklen_t)(sizeof(opt))) < 0) {
-    log_error("SocketFd SetSO_SNDBUF error");
-  }
+  //  int opt = 3;
+  //  if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
+  //                   (socklen_t)(sizeof(opt))) < 0) {
+  //    log_error("SocketFd SetSO_SNDBUF error");
+  //  }
 
   if (conn_fd < 0) {
-    log_error("bind error! errno=%d errstr = %s", errno, strerror(errno));
+    log_error("[Socket::Accept]->accept error! errno=%d errstr = %s", errno,
+              strerror(errno));
   }
   return conn_fd;
 }
@@ -159,3 +160,10 @@ void Socket::ShutDownWrite() const {
     log_error("[Socket::ShutDownWrite]->shutdownWrite fd=%d", fd_);
   }
 }
+
+#ifdef OS_UNIX
+ssize_t Socket::ReadV(const struct iovec* vec, int len) const {
+  return ::readv(fd_, vec, len);
+}
+
+#endif

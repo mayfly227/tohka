@@ -34,6 +34,7 @@ class TcpServer : noncopyable {
   std::map<std::string, TcpEventPrt_t> connection_map_;
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;
+  int64_t conn_id_;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_TCPSERVER_H

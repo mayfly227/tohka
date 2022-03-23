@@ -9,7 +9,7 @@
 using namespace tohka;
 
 IoEvent::IoEvent(IoWatcher* io_watcher, int fd)
-    : io_watcher_(io_watcher), fd_(fd), events_(0), revents_(0), index_(-1) {}
+    : fd_(fd), events_(0), revents_(0), index_(-1), io_watcher_(io_watcher) {}
 
 // TODO Determined by the operating system
 #ifdef OS_UNIX

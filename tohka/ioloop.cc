@@ -9,9 +9,10 @@
 using namespace tohka;
 
 IoLoop::IoLoop()
-    : running_(false),
-      io_watcher_(std::make_unique<Poll>()),  // TODO choose poller by os
-      timer_manager_(std::make_unique<TimerManager>()) {
+    : io_watcher_(std::make_unique<Poll>()),
+      timer_manager_(
+          std::make_unique<TimerManager>()),  // TODO choose poller by os
+      running_(false) {
   // init log level
   log_set_level(LOG_INFO);
 }
@@ -20,7 +21,7 @@ void IoLoop::RunForever() {
   running_ = true;
   std::vector<IoEvent*> activate_event_list;
   int i = 100;
-  while (true) {
+  while (running_) {
     activate_event_list.clear();
     int64_t next_expired_duration = timer_manager_->GetNextExpiredDuration();
 

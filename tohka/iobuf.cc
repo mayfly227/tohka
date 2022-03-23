@@ -4,6 +4,7 @@
 
 #include "iobuf.h"
 
+#include "util/log.h"
 using namespace tohka;
 
 IoBuf::IoBuf(size_t len) : data_(len) {
@@ -14,8 +15,9 @@ IoBuf::IoBuf(size_t len) : data_(len) {
 void IoBuf::Append(const char* data, size_t len) {
   // get writeable space
   EnsureWritableBytes(len);
-  //  std::copy()
-  data_.insert(data_.begin() + (long)write_index_, data, data + len);
+  std::copy(data, data + len, Begin() + write_index_);
+  // FIXME why case memory leak?
+  //  data_.insert(data_.begin() + write_index_, data, data + len);
   assert(GetWriteableSize() >= len);
   write_index_ += len;
 }
