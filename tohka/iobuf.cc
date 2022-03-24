@@ -16,8 +16,6 @@ void IoBuf::Append(const char* data, size_t len) {
   // get writeable space
   EnsureWritableBytes(len);
   std::copy(data, data + len, Begin() + write_index_);
-  // FIXME why case memory leak?
-  //  data_.insert(data_.begin() + write_index_, data, data + len);
   assert(GetWriteableSize() >= len);
   write_index_ += len;
 }
@@ -31,8 +29,19 @@ void IoBuf::EnsureWritableBytes(size_t len) {
   }
 }
 void IoBuf::MakeSpace(size_t len) {
-  // TODO  move readable data
-  data_.resize(len + write_index_);
+  if (GetWriteableSize() + read_index_ < len + kPrependSize) {
+    data_.resize(len + write_index_);
+  } else {
+    assert(kPrependSize < read_index_);
+    // last readable size
+    size_t readable = GetReadableSize();
+    std::copy(Begin() + read_index_, Begin() + write_index_,
+              Begin() + kPrependSize);
+    read_index_ = kPrependSize;
+    write_index_ = read_index_ + readable;
+    // now readable size
+    assert(readable == GetReadableSize());
+  }
 }
 std::string IoBuf::ReceiveAllAsString() {
   size_t readable = GetReadableSize();

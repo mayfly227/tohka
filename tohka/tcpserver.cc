@@ -43,7 +43,6 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   new_conn->ConnectEstablished();
 }
 void TcpServer::OnClose(const TcpEventPrt_t& conn) {
-  log_warn("conn size = %d", connection_map_.size());
   auto name = conn->GetName();
   int fd = conn->GetFd();
   // remove from conn map

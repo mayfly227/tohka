@@ -4,9 +4,6 @@
 
 #include "socket.h"
 
-// TODO chosed by os
-#include <fcntl.h>
-
 #include "util/log.h"
 using namespace tohka;
 

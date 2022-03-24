@@ -68,24 +68,24 @@
 #endif
 #else
 #include <unistd.h>
+#include <sys/fcntl.h>
+#include <sys/uio.h>
 
 // socket
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
-
-#include <sys/uio.h>
 #endif
 
 // ANSI C
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
-#include <cstddef>
-
 // c++ header
+#include <algorithm>
 #include <any>
 #include <chrono>
 #include <functional>
@@ -105,10 +105,6 @@
 
 #if HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-
-#if HAVE_PTHREAD_H
-#include <pthread.h>
 #endif
 
 #endif  // TOHKA_TOHKA_PLATFORM_H

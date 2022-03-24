@@ -6,11 +6,11 @@
 #define TOHKA_TOHKA_ACCEPTOR_H
 
 #include "ioevent.h"
-#include "util/log.h"
 #include "netaddress.h"
 #include "noncopyable.h"
 #include "socket.h"
 #include "tohka.h"
+#include "util/log.h"
 
 namespace tohka {
 class IoWatcher;
@@ -28,10 +28,11 @@ class Acceptor : noncopyable {
 
  private:
   void OnAccept();
-
+  static constexpr int kMaxConn = 200000; 
   Socket socket_;
   IoEvent event_;
   IoWatcher* io_watcher_;
+  int idle_fd_;  // For discarding failed connections
 
   OnAcceptCallback on_accept_;
 };

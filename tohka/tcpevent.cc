@@ -32,14 +32,10 @@ TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
 
 void TcpEvent::HandleRead() {
   log_trace("TcpEvent::HandleRead fd = %d", socket_->GetFd());
-  // read(event.GetFd())
-
-  //  ssize_t n = socket_->Read(ext_buf, 64 * 1024);  // read from fd
   // TODO debug only(set read ext_buf size=1)
-
   ssize_t n;
   // TODO only support unix (support windows)
-#if defined(OS_UNIX1)
+#if defined(OS_UNIX)
   char ext_buf[65535];
   struct iovec vec[2];
   //  size_t writeable_size = in_buf_.GetWriteableSize();
@@ -60,9 +56,9 @@ void TcpEvent::HandleRead() {
     // FIXME while n - writeable > 65535
     in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
   }
-#elif defined(OS_UNIX)
+#elif defined(OS_UNIX1)
   char ext_buf[65535];
-  // TODO copy or increase a system call？
+  // TODO: copy or increase a system call？
   //  int can_write = in_buf_.GetWriteableSize();
   n = socket_->Read(ext_buf, 65535);  // read from fd
   if (n > 0) {
@@ -71,13 +67,14 @@ void TcpEvent::HandleRead() {
 #endif
   // check
   if (n > 0) {
-    //    in_buf_.Append(ext_buf, n);
     // call msg callback
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
     log_trace("TcpEvent::HandleRead half Close", socket_->GetFd());
     HandleClose();
   } else {
+    log_error("[TcpEvent::HandleRead]-> read <0 errno=%d errmsg = %s", errno,
+              strerror(errno));
     HandleError();
   }
 }
@@ -98,7 +95,8 @@ void TcpEvent::HandleWrite() {
         if (on_write_done_) {
           on_write_done_(shared_from_this());
         }
-        //
+        // Ensure that the data in the buffer has been sent out.
+        // Then shutdown the connection
         if (state_ == kDisconnecting) {
           TryEagerShutDown();
         }
