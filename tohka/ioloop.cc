@@ -8,6 +8,51 @@
 
 using namespace tohka;
 
+#ifdef OS_UNIX
+namespace {
+//信号处理函数
+// void sig_handler(int signo);
+
+// typedef void Sigfunc(int);
+
+// Sigfunc* signal(int signo, Sigfunc* func);
+// Sigfunc* signal(int signo, Sigfunc* func) {
+//   struct sigaction act {
+//   }, oact{};
+//   act.sa_handler = func;
+//   act.sa_flags = 0;
+//   sigemptyset(&act.sa_mask);
+//   if (signo == SIGALRM) {
+// #ifdef SA_INTERRUPT
+//     act.sa_flags |= SA_INTERRUPT;
+// #endif
+//   } else {
+// #ifdef SA_RESTART
+//     act.sa_flags |= SA_RESTART;
+// #endif
+//   }
+//   if (sigaction(signo, &act, &oact) < 0) {
+//     return SIG_ERR;
+//   }
+//   return oact.sa_handler;
+// }
+// void sig_int(int signo) {
+//   printf("signo=%d\n", signo);
+//   exit(0);
+// }
+
+class IgnoreSigPipe {
+ public:
+  IgnoreSigPipe() {
+    // ::signal(SIGPIPE, sig_int);
+    ::signal(SIGPIPE, SIG_IGN);
+    // LOG_TRACE << "Ignore SIGPIPE";
+  }
+};
+IgnoreSigPipe isp;
+}  // namespace
+#endif
+
 IoLoop::IoLoop()
     : io_watcher_(std::make_unique<Poll>()),
       timer_manager_(

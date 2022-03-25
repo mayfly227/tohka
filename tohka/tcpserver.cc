@@ -35,7 +35,7 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   // call user callback
   new_conn->SetOnConnection(on_connection_);
   new_conn->SetOnOnMessage(on_message_);
-  // TODO on write done
+  new_conn->SetOnWriteDone(on_write_done_);
   new_conn->SetOnClose(
       std::bind(&TcpServer::OnClose, this, std::placeholders::_1));
 

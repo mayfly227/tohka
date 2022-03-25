@@ -4,8 +4,6 @@
 
 #include "connector.h"
 
-#include <memory>
-
 #include "ioloop.h"
 #include "util/log.h"
 using namespace tohka;
@@ -51,7 +49,11 @@ void Connector::Connect() {
 
   int ret = sock_->Connect(peer_);
   int saved_errno = (ret == 0) ? 0 : errno;
-  log_trace("errno = %d", errno);
+
+  // set connect timeout
+  IoLoop::GetLoop()->CallLater(connect_timeout_ms_,
+                               [this] { OnConnectTimeout(); });
+  log_trace("errno = %d errmsg = %s", errno, strerror(errno));
   switch (saved_errno) {
     case 0:
     case EINPROGRESS:
@@ -125,7 +127,7 @@ void Connector::OnError() {
     log_trace("Connector::OnError retry");
     RemoveAndResetEvent();
     int err = sock_->GetSocketError();
-    char buff[512]{};
+    char buff[256]{};
     strerror_r(err, buff, sizeof buff);
     log_trace("Connector::OnError SO_ERROR=%d msg=%s", err, buff);
     Retry();
@@ -155,4 +157,22 @@ void Connector::Restart() {
   connect_ = true;
   retry_delay_ms_ = kInitDelayMs;
   Start();
+}
+
+void Connector::OnConnectTimeout() {
+  if (state_ == kConnected) {
+    log_debug("[ConnectTimeout]->connect %s ok! status=kConnected",
+              peer_.GetIpAndPort().c_str());
+  }
+  if (state_ == kConnecting) {
+    if (state_ == kConnecting) {
+      log_debug(
+          "[Connector::OnConnectTimeout]-> connect %s timeout now status= "
+          "kConnecting and try to reconnected!",
+          peer_.GetIpAndPort().c_str());
+    }
+    SetState(kDisconnected);
+    RemoveAndResetEvent();
+    Retry();
+  }
 }

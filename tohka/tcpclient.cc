@@ -4,8 +4,6 @@
 
 #include "tcpclient.h"
 
-#include <utility>
-
 #include "iobuf.h"
 #include "tcpevent.h"
 #include "util/log.h"

@@ -6,6 +6,7 @@
 #define TOHKA_TOHKA_TCPCLIENT_H
 #include "connector.h"
 #include "netaddress.h"
+#include "tcpevent.h"
 #include "tohka.h"
 namespace tohka {
 class IoWatcher;
@@ -17,6 +18,10 @@ class TcpClient : noncopyable {
   void Connect();
   void Disconnect();
   void Stop();
+
+  void SetConnectTimeout(int connect_timeout_ms) {
+    connector_->SetConnectTimeout(connect_timeout_ms);
+  }
 
   void SetOnConnection(OnConnectionCallback cb) {
     on_connection_ = std::move(cb);
@@ -33,7 +38,7 @@ class TcpClient : noncopyable {
   void onConnect(int sock_fd);
   void removeConnection(const TcpEventPrt_t& conn);
   IoWatcher* io_watcher_;
-  // 持有连接器有tcp的共享指针
+  // 持有连接器的共享指针
   using ConnectorPrt_t = std::shared_ptr<Connector>;
   ConnectorPrt_t connector_;
   TcpEventPrt_t connection_;

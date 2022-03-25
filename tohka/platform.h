@@ -67,9 +67,12 @@
 #define S_ISDIR(st_mode) (((st_mode)&S_IFMT) == S_IFDIR)
 #endif
 #else
-#include <unistd.h>
+
+// unix
+#include <signal.h>
 #include <sys/fcntl.h>
 #include <sys/uio.h>
+#include <unistd.h>
 
 // socket
 #include <arpa/inet.h>
@@ -80,10 +83,11 @@
 
 // ANSI C
 #include <assert.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
-
 // c++ header
 #include <algorithm>
 #include <any>

@@ -3,6 +3,8 @@
 //
 
 #include "tcpevent.h"
+
+#include "tohka/iobuf.h"
 using namespace tohka;
 
 void tohka::DefaultOnConnection(const TcpEventPrt_t& conn) {
@@ -44,10 +46,9 @@ void TcpEvent::HandleRead() {
   vec[1].iov_base = ext_buf;
   vec[1].iov_len = sizeof(ext_buf);
   const int vec_number = (in_buf_.GetWriteableSize() < sizeof(ext_buf)) ? 2 : 1;
-  //  ssize_t n = socket_->Read(ext_buf, 64 * 1024);  // read from fd
   n = socket_->ReadV(vec, vec_number);  // read from fd
   if (n < 0) {
-    int save_errno = errno;
+    // int save_errno = errno;
     //    也就是说还没有占满预分配的vector
   } else if (n <= in_buf_.GetWriteableSize()) {
     in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);

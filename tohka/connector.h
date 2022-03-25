@@ -25,6 +25,10 @@ class Connector {
   void Restart();
   void Stop();
 
+  // internal use only
+  void SetConnectTimeout(int connect_timeout_ms) {
+    connect_timeout_ms_ = connect_timeout_ms;
+  }
   NetAddress& GetPeerAddress() { return peer_; }
 
  private:
@@ -38,8 +42,11 @@ class Connector {
   void RemoveAndResetEvent();
   void ResetEvent();
 
+  void OnConnectTimeout();
+
   static constexpr int kInitDelayMs = 500;
   static constexpr int kMaxDelayMs = 30 * 1000;
+  static constexpr int kDefaultTimeoutMs = 8000;
   int retry_delay_ms_;
   void SetState(State s) { state_ = s; };
   IoWatcher* io_watcher_;
@@ -48,6 +55,7 @@ class Connector {
   NetAddress peer_;
   State state_;
   bool connect_;
+  int connect_timeout_ms_ = kDefaultTimeoutMs;
   OnConnectCallback on_connect_;
 };
 }  // namespace tohka

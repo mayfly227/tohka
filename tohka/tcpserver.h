@@ -22,6 +22,7 @@ class TcpServer : noncopyable {
   void Run();
   void SetOnConnection(const OnConnectionCallback& cb) { on_connection_ = cb; }
   void SetOnMessage(const OnMessageCallback& cb) { on_message_ = cb; }
+  void SetOnWriteDone(const OnWriteDoneCallback& cb) { on_write_done_ = cb; }
 
  private:
   // call OnConnectionCallback
@@ -34,6 +35,7 @@ class TcpServer : noncopyable {
   std::map<std::string, TcpEventPrt_t> connection_map_;
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;
+  OnWriteDoneCallback on_write_done_;
   int64_t conn_id_;
 };
 }  // namespace tohka
