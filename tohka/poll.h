@@ -22,6 +22,7 @@ class Poll : public IoWatcher {
   void UnRegisterEvent(IoEvent* io_event) override;
 
  private:
+  void ReventsToString(short revent);
   static constexpr int kInitialSize = 64;
   using Pfds = std::vector<struct pollfd>;
   Pfds pfds_;

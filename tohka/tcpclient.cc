@@ -21,7 +21,7 @@ TcpClient::TcpClient(IoWatcher* io_watcher, const NetAddress& peer,
       name_(std::move(name)) {
   // socket writeable
   connector_->SetOnConnect(
-      std::bind(&TcpClient::onConnect, this, std::placeholders::_1));
+      std::bind(&TcpClient::OnConnect, this, std::placeholders::_1));
 }
 TcpClient::~TcpClient() {
   log_trace("[TcpClient::~TcpClient]");
@@ -56,7 +56,7 @@ void TcpClient::Stop() {
   connect_ = false;
   connector_->Stop();
 }
-void TcpClient::onConnect(int sock_fd) {
+void TcpClient::OnConnect(int sock_fd) {
   auto name = connector_->GetPeerAddress().GetIpAndPort();
   log_info("[TcpClient::onConnect]->Connect to %s fd = %d", name.c_str(),
            sock_fd);
@@ -67,16 +67,16 @@ void TcpClient::onConnect(int sock_fd) {
   new_conn->SetOnConnection(on_connection_);
   new_conn->SetOnOnMessage(on_message_);
   new_conn->SetOnWriteDone(on_write_done_);
-  // half close
+  // handle close
   new_conn->SetOnClose(
-      std::bind(&TcpClient::removeConnection, this, std::placeholders::_1));
+      std::bind(&TcpClient::RemoveConnection, this, std::placeholders::_1));
 
   // 把新连接托管给tcp client管理
   connection_ = new_conn;
   new_conn->ConnectEstablished();
 }
 
-void TcpClient::removeConnection(const TcpEventPrt_t& conn) {
+void TcpClient::RemoveConnection(const TcpEventPrt_t& conn) {
   log_trace("TcpClient::removeConnection");
   assert(connection_ == conn);
   connection_.reset();

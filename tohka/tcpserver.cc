@@ -42,6 +42,10 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   // call ConnectEstablished
   new_conn->ConnectEstablished();
 }
+// NOTE:
+// 这个OnClose函数有两种被调用的可能性
+// 1. 在tcpevent的handle_close中被调用，也就是read = 0
+// 2. 在tcpevent的handle_close中被调用，也就是read < 0,此时发生错误
 void TcpServer::OnClose(const TcpEventPrt_t& conn) {
   auto name = conn->GetName();
   int fd = conn->GetFd();

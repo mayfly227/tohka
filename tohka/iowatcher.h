@@ -18,6 +18,7 @@ class IoWatcher : noncopyable {
   // Register and Update io_event to io_events_map
   virtual void RegisterEvent(IoEvent* io_event) = 0;
   virtual void UnRegisterEvent(IoEvent* io_event) = 0;
+  static IoWatcher* ChooseIoWatcher();
 
  protected:
   // map(fd->io_event)

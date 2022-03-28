@@ -35,8 +35,8 @@ class TcpClient : noncopyable {
   bool GetRetry() const { return retry_; }
 
  private:
-  void onConnect(int sock_fd);
-  void removeConnection(const TcpEventPrt_t& conn);
+  void OnConnect(int sock_fd);
+  void RemoveConnection(const TcpEventPrt_t& conn);
   IoWatcher* io_watcher_;
   // 持有连接器的共享指针
   using ConnectorPrt_t = std::shared_ptr<Connector>;

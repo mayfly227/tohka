@@ -5,12 +5,13 @@
 #ifndef TOHKA_TOHKA_TIMERMANAGER_H
 #define TOHKA_TOHKA_TIMERMANAGER_H
 
+#include "noncopyable.h"
 #include "timepoint.h"
 #include "timer.h"
 #include "tohka.h"
 
 namespace tohka {
-class TimerManager {
+class TimerManager : noncopyable {
  public:
   static constexpr int64_t kDefaultTimeOutMs = 10000;
 

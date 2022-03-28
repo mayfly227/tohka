@@ -23,23 +23,23 @@ void Connector::OnConnect() {
   // call user callback
   log_trace("Connector::OnConnect");
   if (state_ == kConnecting) {
-    // 这时连接已经成功，要把poll中的event去掉
+    // TODO 这时连接已经(不一定？)成功，要把poll中的event去掉
     RemoveAndResetEvent();
     // handle error
+    // 使用getsockname和getpeername判断是否是真正的连接成功了
     int err = sock_->GetSocketError();
     if (err) {
       log_trace("Connector::OnConnect err");
       // 一定后时间重连
       Retry();
     } else {
+      SetState(kConnected);
       if (connect_) {
         on_connect_(sock_->GetFd());
       } else {
         sock_->Close();
       }
     }
-    SetState(kConnected);
-
   } else {
     assert(state_ == kDisconnected);
   }
@@ -99,10 +99,10 @@ void Connector::Connecting() {
   event_ = std::make_unique<IoEvent>(io_watcher_, sock_->GetFd());
   //  event_.reset(new IoEvent(io_watcher_,sock_.GetFd()));
   event_->SetWriteCallback([this] { OnConnect(); });
-  event_->SetErrorCallback([this] { OnError(); });
+  //  event_->SetErrorCallback([this] { OnError(); });
   // FIXME bug only on unix(connect to unbind localhost will trigger
   // onclose[POLLHUP])
-  event_->SetCloseCallback([this] { OnClose(); });
+  //  event_->SetCloseCallback([this] { OnClose(); });
 
   // 监听写事件，如果socket可写，那么就会触发OnConnect回调
   event_->EnableWriting();
@@ -165,12 +165,10 @@ void Connector::OnConnectTimeout() {
               peer_.GetIpAndPort().c_str());
   }
   if (state_ == kConnecting) {
-    if (state_ == kConnecting) {
-      log_debug(
-          "[Connector::OnConnectTimeout]-> connect %s timeout now status= "
-          "kConnecting and try to reconnected!",
-          peer_.GetIpAndPort().c_str());
-    }
+    log_debug(
+        "[Connector::OnConnectTimeout]-> connect %s timeout now status= "
+        "kConnecting and try to reconnected!",
+        peer_.GetIpAndPort().c_str());
     SetState(kDisconnected);
     RemoveAndResetEvent();
     Retry();

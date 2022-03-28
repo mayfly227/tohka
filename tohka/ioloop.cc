@@ -4,6 +4,7 @@
 
 #include "ioloop.h"
 
+#include "tohka/iowatcher.h"
 #include "util/log.h"
 
 using namespace tohka;
@@ -54,7 +55,7 @@ IgnoreSigPipe isp;
 #endif
 
 IoLoop::IoLoop()
-    : io_watcher_(std::make_unique<Poll>()),
+    : io_watcher_(IoWatcher::ChooseIoWatcher()),
       timer_manager_(
           std::make_unique<TimerManager>()),  // TODO choose poller by os
       running_(false) {

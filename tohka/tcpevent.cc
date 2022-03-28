@@ -28,8 +28,8 @@ TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
 
   event_->SetReadCallback([this] { HandleRead(); });
   event_->SetWriteCallback([this] { HandleWrite(); });
-  event_->SetCloseCallback([this] { HandleClose(); });
-  event_->SetErrorCallback([this] { HandleError(); });
+  //  event_->SetCloseCallback([this] { HandleClose(); });
+  //  event_->SetErrorCallback([this] { HandleError(); });
 }
 
 void TcpEvent::HandleRead() {
@@ -85,7 +85,7 @@ void TcpEvent::HandleWrite() {
     ssize_t n =
         socket_->Write((char*)out_buf_.Peek(), out_buf_.GetReadableSize());
     log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
-    if (n > 0) {
+    if (n >= 0) {
       out_buf_.Retrieve(n);
       // Once the data is written, Close the write event immediately to avoid
       // busy loop
@@ -110,9 +110,12 @@ void TcpEvent::HandleWrite() {
 void TcpEvent::HandleClose() {
   assert(state_ == kConnected || state_ == kDisconnecting);
   SetState(kDisconnected);
-  event_->DisableAll();
+  StopAll();
   // call user callback
   on_connection_(shared_from_this());
+  // TODO 这里调用了conn->ConnectDestroyed()用户的连接
+  // call tcpserver callback
+  // 目的是为了清除tcp连接
   if (on_close_) {
     //  close_callback();
     on_close_(shared_from_this());
@@ -124,6 +127,8 @@ void TcpEvent::HandleError() {
   strerror_r(err, buff, sizeof buff);
   log_error("TcpEvent::HandleError SO_ERROR=%d msg=%s fd=%d", err, buff,
             socket_->GetFd());
+  // TODO only test
+  HandleClose();
 }
 TcpEvent::~TcpEvent() {
   log_debug("TcpEvent::~TcpEvent");
@@ -141,6 +146,8 @@ void TcpEvent::ConnectEstablished() {
   }
 }
 void TcpEvent::ConnectDestroyed() {
+  // 注意这种情况只会在event那里触发EV_CLOSE事件时被调用
+  // TODO delete
   if (state_ == kConnected) {
     SetState(kDisconnected);
     // TODO FIXME:why TcpEvent::HandleClose() call event_->DisableAll();
@@ -155,15 +162,20 @@ void TcpEvent::ConnectDestroyed() {
 }
 void TcpEvent::Send(std::string_view msg) { Send(msg.data(), msg.size()); }
 void TcpEvent::Send(const char* data, size_t len) {
-  if (state_ == kDisconnected) {
-    log_warn("disconnected, give up writing");
+  if (state_ == kDisconnecting) {
+    log_warn("Disconnecting, give up writing");
     return;
   }
+  if (state_ == kDisconnected) {
+    log_warn("Disconnected, give up writing");
+    return;
+  }
+
   size_t remaining = len;
   ssize_t n = 0;
   // If there is still data in the output buffer at this time,
   // it should not be sent directly, but the data is added to the buffer.
-  if (out_buf_.GetReadableSize() == 0) {
+  if (!event_->IsWriting() && out_buf_.GetReadableSize() == 0) {
     // FIXME test
     n = socket_->Write((char*)data, len);
     if (n >= 0) {

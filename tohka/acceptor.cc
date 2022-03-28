@@ -40,7 +40,7 @@ void Acceptor::OnAccept() {
     log_error("accept error!");
 #if defined(OS_UNIX)
     if (errno == EMFILE) {
-      log_error("use idle fd...");
+      log_warn("use idle fd...");
       ::close(idle_fd_);
       idle_fd_ = ::accept(socket_.GetFd(), nullptr, nullptr);
       ::close(idle_fd_);

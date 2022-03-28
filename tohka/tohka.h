@@ -46,13 +46,12 @@ using OnCloseCallback = std::function<void(const TcpEventPrt_t& conn)>;
 void DefaultOnConnection(const TcpEventPrt_t& conn);
 void DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf);
 
-#ifdef OS_UNIX
 enum {
-  TOHKA_NONE = 0x0000,
-  TOHKA_READ = 0x0001,
-  TOHKA_WRITE = 0x0004,
+  EV_NONE = 0x0000,
+  EV_READ = 0x0001,
+  EV_WRITE = 0x0004,
+  EV_CLOSED = 0x0008,
 };
 
-#endif
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_TOHKA_H
