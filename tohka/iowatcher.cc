@@ -13,6 +13,6 @@ IoWatcher* IoWatcher::ChooseIoWatcher() {
   return new Poll();
 #endif
 #if defined(OS_LINUX)
-
+  return new Poll();
 #endif
 }

@@ -13,7 +13,9 @@ Connector::Connector(IoWatcher* io_watcher, const NetAddress& peer)
       io_watcher_(io_watcher),
       peer_(peer),
       state_(kDisconnected),
-      connect_(false) {}
+      connect_(false),
+      enable_connect_timeout_(false),
+      connect_timeout_ms_(kDefaultTimeoutMs) {}
 Connector::~Connector() {
   log_trace("Connector::~Connector");
   assert(!event_);
@@ -51,8 +53,10 @@ void Connector::Connect() {
   int saved_errno = (ret == 0) ? 0 : errno;
 
   // set connect timeout
-  IoLoop::GetLoop()->CallLater(connect_timeout_ms_,
-                               [this] { OnConnectTimeout(); });
+  if (enable_connect_timeout_) {
+    IoLoop::GetLoop()->CallLater(connect_timeout_ms_,
+                                 [this] { OnConnectTimeout(); });
+  }
   log_trace("errno = %d errmsg = %s", errno, strerror(errno));
   switch (saved_errno) {
     case 0:
@@ -160,11 +164,12 @@ void Connector::Restart() {
 }
 
 void Connector::OnConnectTimeout() {
+  log_warn("[ConnectTimeout]->connect");
   if (state_ == kConnected) {
     log_debug("[ConnectTimeout]->connect %s ok! status=kConnected",
               peer_.GetIpAndPort().c_str());
   }
-  if (state_ == kConnecting) {
+  if (state_ == kConnecting || state_ == kDisconnected) {
     log_debug(
         "[Connector::OnConnectTimeout]-> connect %s timeout now status= "
         "kConnecting and try to reconnected!",

@@ -12,7 +12,7 @@
 #ifdef OS_UNIX
 #include "sys/poll.h"
 #endif
-
+// common poll for windows/linux/macos
 namespace tohka {
 class Poll : public IoWatcher {
  public:

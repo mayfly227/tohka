@@ -26,6 +26,8 @@ class Connector {
   void Stop();
 
   // internal use only
+  void EnbaleConnectTimeout(bool on) { enable_connect_timeout_ = on; };
+  // internal use only
   void SetConnectTimeout(int connect_timeout_ms) {
     connect_timeout_ms_ = connect_timeout_ms;
   }
@@ -55,7 +57,8 @@ class Connector {
   NetAddress peer_;
   State state_;
   bool connect_;
-  int connect_timeout_ms_ = kDefaultTimeoutMs;
+  bool enable_connect_timeout_;
+  int connect_timeout_ms_;
   OnConnectCallback on_connect_;
 };
 }  // namespace tohka

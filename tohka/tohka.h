@@ -50,7 +50,6 @@ enum {
   EV_NONE = 0x0000,
   EV_READ = 0x0001,
   EV_WRITE = 0x0004,
-  EV_CLOSED = 0x0008,
 };
 
 }  // namespace tohka
