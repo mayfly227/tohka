@@ -23,13 +23,12 @@ TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
       socket_(std::make_unique<Socket>(fd)),
       peer_(peer),
       name_(std::move(name)),
-      state_(kConnecting) {
+      state_(kConnecting),
+      high_water_mark_(64 * 1024 * 1024) {
   socket_->SetKeepAlive(true);
 
   event_->SetReadCallback([this] { HandleRead(); });
   event_->SetWriteCallback([this] { HandleWrite(); });
-  //  event_->SetCloseCallback([this] { HandleClose(); });
-  //  event_->SetErrorCallback([this] { HandleError(); });
 }
 
 void TcpEvent::HandleRead() {
@@ -47,14 +46,11 @@ void TcpEvent::HandleRead() {
   vec[1].iov_len = sizeof(ext_buf);
   const int vec_number = (in_buf_.GetWriteableSize() < sizeof(ext_buf)) ? 2 : 1;
   n = socket_->ReadV(vec, vec_number);  // read from fd
-  if (n < 0) {
-    // int save_errno = errno;
-    //    也就是说还没有占满预分配的vector
-  } else if (n <= in_buf_.GetWriteableSize()) {
+  // 也就是说还没有占满预分配的vector
+  if (n <= in_buf_.GetWriteableSize()) {
     in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);
   } else {
     in_buf_.SetWriteIndex(in_buf_.GetBufferSize());
-    // FIXME while n - writeable > 65535
     in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
   }
 #elif defined(OS_UNIX1)
@@ -72,11 +68,11 @@ void TcpEvent::HandleRead() {
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
     log_trace("TcpEvent::HandleRead half Close", socket_->GetFd());
-    HandleClose();
+    DoClose();
   } else {
-    log_error("[TcpEvent::HandleRead]-> read <0 errno=%d errmsg = %s", errno,
+    log_error("[TcpEvent::HandleRead]-> read < 0 errno=%d errmsg = %s", errno,
               strerror(errno));
-    HandleError();
+    DoError();
   }
 }
 void TcpEvent::HandleWrite() {
@@ -107,7 +103,7 @@ void TcpEvent::HandleWrite() {
     log_error("TcpEvent::HandleWrite error");
   }
 }
-void TcpEvent::HandleClose() {
+void TcpEvent::DoClose() {
   assert(state_ == kConnected || state_ == kDisconnecting);
   SetState(kDisconnected);
   StopAll();
@@ -121,14 +117,14 @@ void TcpEvent::HandleClose() {
     on_close_(shared_from_this());
   }
 }
-void TcpEvent::HandleError() {
+void TcpEvent::DoError() {
   int err = socket_->GetSocketError();
   char buff[256]{};
   strerror_r(err, buff, sizeof buff);
-  log_error("TcpEvent::HandleError SO_ERROR=%d msg=%s fd=%d", err, buff,
+  log_error("TcpEvent::DoError SO_ERROR=%d msg=%s fd=%d", err, buff,
             socket_->GetFd());
   // TODO only test
-  HandleClose();
+  DoClose();
 }
 TcpEvent::~TcpEvent() {
   log_debug("TcpEvent::~TcpEvent");
@@ -149,8 +145,9 @@ void TcpEvent::ConnectDestroyed() {
   // 注意这种情况只会在event那里触发EV_CLOSE事件时被调用
   // TODO delete
   if (state_ == kConnected) {
+    exit(-999);
     SetState(kDisconnected);
-    // TODO FIXME:why TcpEvent::HandleClose() call event_->DisableAll();
+    // TODO FIXME:why TcpEvent::DoClose() call event_->DisableAll();
     StopAll();
     // on connection Close(closed callback)
     if (on_connection_) {
@@ -162,6 +159,7 @@ void TcpEvent::ConnectDestroyed() {
 }
 void TcpEvent::Send(std::string_view msg) { Send(msg.data(), msg.size()); }
 void TcpEvent::Send(const char* data, size_t len) {
+  // for force close
   if (state_ == kDisconnecting) {
     log_warn("Disconnecting, give up writing");
     return;
@@ -198,10 +196,21 @@ void TcpEvent::Send(const char* data, size_t len) {
 
   // Put the unsent data into the output buffer and pay attention to the write
   // event
+  assert(remaining <= len);
   if (remaining > 0) {
+    // Judging whether the current cache data has exceeded the high watermark
+    size_t exist = out_buf_.GetReadableSize();
+    log_debug("remain =%d exist = %d", high_water_mark_, remaining, exist);
+    // FIXME why
+    if (exist + remaining >= high_water_mark_) {
+      // if(exist + remaining >= high_water_mark_ && exist < high_water_mark_){
+      if (on_high_water_mark_) {
+        on_high_water_mark_(shared_from_this());
+      }
+    }
     // append remaining data to buffer
     out_buf_.Append(data + n, remaining);
-    log_trace("TcpEvent::Send no more buffer enable writing...");
+    log_trace("[TcpEvent::Send]->no more buffer,so enable writing...");
     StartWriting();
   }
 }
@@ -219,7 +228,7 @@ void TcpEvent::ForceClose() {
   if (state_ == kConnected || state_ == kDisconnecting) {
     SetState(kDisconnecting);
     // as if we received 0 byte in handleRead();
-    HandleClose();
+    DoClose();
   }
 }
 void TcpEvent::TryEagerShutDown() {

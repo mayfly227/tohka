@@ -38,6 +38,14 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
     on_write_done_ = on_write_done;
   };
 
+  // 写入高水位
+  // TODO  其它水位
+  void SetOnHighWaterMark(const OnHighWaterMark& on_high_water_mark,
+                          size_t size) {
+    on_high_water_mark_ = on_high_water_mark;
+    high_water_mark_ = size;
+  }
+
   void Send(std::string_view msg);
   void Send(const char* data, size_t len);
   void Send(IoBuf* buffer);
@@ -69,8 +77,8 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
  private:
   void HandleRead();
   void HandleWrite();
-  void HandleClose();
-  void HandleError();
+  void DoClose();
+  void DoError();
 
   void TryEagerShutDown();
   enum STATE { kConnecting, kConnected, kDisconnecting, kDisconnected };
@@ -83,11 +91,13 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   IoBuf in_buf_;
   IoBuf out_buf_;
   std::any context_;
+  size_t high_water_mark_;
   void SetState(STATE state) { state_ = state; }
   OnMessageCallback on_message_;
   OnConnectionCallback on_connection_;
   OnCloseCallback on_close_;
   OnWriteDoneCallback on_write_done_;
+  OnHighWaterMark on_high_water_mark_;
 };
 }  // namespace tohka
 
