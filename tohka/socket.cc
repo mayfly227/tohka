@@ -46,11 +46,11 @@ int Socket::Accept(NetAddress* peer_address) const {
       fd_, std::any_cast<sockaddr*>(peer_address->GetAddress()), &sock_len);
   Socket::SetNonBlockAndCloseOnExec(conn_fd);
   // TODO For debug only
-  int opt = 3;
-  if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
-                   (socklen_t)(sizeof(opt))) < 0) {
-    log_error("SocketFd SetSO_SNDBUF error");
-  }
+  //  int opt = 3;
+  //  if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
+  //                   (socklen_t)(sizeof(opt))) < 0) {
+  //    log_error("SocketFd SetSO_SNDBUF error");
+  //  }
 
   if (conn_fd < 0) {
     log_error("[Socket::Accept]->accept error! errno=%d errstr = %s", errno,

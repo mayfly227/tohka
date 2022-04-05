@@ -47,12 +47,15 @@ void TcpEvent::HandleRead() {
   const int vec_number = (in_buf_.GetWriteableSize() < sizeof(ext_buf)) ? 2 : 1;
   n = socket_->ReadV(vec, vec_number);  // read from fd
   // 也就是说还没有占满预分配的vector
-  if (n <= in_buf_.GetWriteableSize()) {
-    in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);
-  } else {
-    in_buf_.SetWriteIndex(in_buf_.GetBufferSize());
-    in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
+  if (n > 0) {
+    if (n <= in_buf_.GetWriteableSize()) {
+      in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);
+    } else {
+      in_buf_.SetWriteIndex(in_buf_.GetBufferSize());
+      in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
+    }
   }
+
 #elif defined(OS_UNIX1)
   char ext_buf[65535];
   // TODO: copy or increase a system call？

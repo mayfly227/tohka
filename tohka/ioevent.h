@@ -48,12 +48,7 @@ class IoEvent : noncopyable {
   void SetWriteCallback(EventCallback write_callback) {
     write_callback_ = std::move(write_callback);
   }
-  //  void SetCloseCallback(EventCallback close_callback) {
-  //    close_callback_ = std::move(close_callback);
-  //  }
-  //  void SetErrorCallback(EventCallback error_callback) {
-  //    error_callback_ = std::move(error_callback);
-  //  }
+
   short GetEvents() const { return events_; }
   void SetEvents(short events) { events_ = events; }
   short GetRevents() const { return revents_; }
@@ -73,8 +68,6 @@ class IoEvent : noncopyable {
   IoWatcher* io_watcher_;
   EventCallback read_callback_;
   EventCallback write_callback_;
-  //  EventCallback close_callback_;
-  //  EventCallback error_callback_;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_IOEVENT_H
