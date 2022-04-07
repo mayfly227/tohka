@@ -16,7 +16,7 @@
 namespace tohka {
 class TcpServer : noncopyable {
  public:
-  TcpServer(IoWatcher* io_watcher, NetAddress& bind_address);
+  TcpServer(IoLoop* loop, NetAddress& bind_address);
   ~TcpServer();
 
   void Run();
@@ -30,7 +30,7 @@ class TcpServer : noncopyable {
 
   void OnClose(const TcpEventPrt_t& conn);
 
-  IoWatcher* io_watcher_;
+  IoLoop* loop_;
   std::unique_ptr<Acceptor> acceptor_;
   std::map<std::string, TcpEventPrt_t> connection_map_;
   OnConnectionCallback on_connection_;

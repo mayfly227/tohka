@@ -10,11 +10,9 @@
 #include "tohka.h"
 
 namespace tohka {
-class IoWatcher;
-
 class Connector {
  public:
-  Connector(IoWatcher* io_watcher, const NetAddress& peer);
+  Connector(IoLoop* loop, const NetAddress& peer);
   ~Connector();
 
   void SetOnConnect(OnConnectCallback on_connect) {
@@ -45,13 +43,13 @@ class Connector {
   void ResetEvent();
 
   void OnConnectTimeout();
+  void SetState(State s) { state_ = s; };
 
   static constexpr int kInitDelayMs = 500;
   static constexpr int kMaxDelayMs = 30 * 1000;
   static constexpr int kDefaultTimeoutMs = 8000;
+  IoLoop* loop_;
   int retry_delay_ms_;
-  void SetState(State s) { state_ = s; };
-  IoWatcher* io_watcher_;
   std::unique_ptr<Socket> sock_;
   std::unique_ptr<IoEvent> event_;
   NetAddress peer_;

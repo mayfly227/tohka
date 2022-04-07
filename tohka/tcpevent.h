@@ -13,13 +13,10 @@
 #include "util/log.h"
 
 namespace tohka {
-
-class IoWatcher;
-
 // one tcp connection
 class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
  public:
-  TcpEvent(IoWatcher* io_watcher, std::string name, int fd, NetAddress& peer);
+  TcpEvent(IoLoop* loop, std::string name, int fd, NetAddress& peer);
   ~TcpEvent();
 
   void StartReading() { event_->EnableReading(); }
@@ -82,7 +79,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
 
   void TryEagerShutDown();
   enum STATE { kConnecting, kConnected, kDisconnecting, kDisconnected };
-  IoWatcher* io_watcher_;
+  IoLoop* loop_;
   std::unique_ptr<IoEvent> event_;
   std::unique_ptr<Socket> socket_;
   NetAddress peer_;

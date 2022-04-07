@@ -73,8 +73,6 @@ void Poll::RegisterEvent(IoEvent* io_event) {
         pfd.events |= POLLOUT;
         break;
     }
-    // pfd.events = io_event->GetEvents();
-    // pfd.revents = io_event->GetRevents();
     pfds_.emplace_back(pfd);
 
     // why -1
@@ -88,23 +86,20 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     assert(index >= 0 && index < pfds_.size());
     auto& pfd = pfds_.at(index);
     short events = io_event->GetEvents();
+    pfd.fd = io_event->GetFd();
     pfd.events = EV_NONE;
     pfd.revents = EV_NONE;
-    //    if (events & EV_NONE) {
-    //      pfd.events = EV_NONE;
-    //    }
     if (events & EV_READ) {
       pfd.events |= POLLIN;
     }
     if (events & EV_WRITE) {
       pfd.events |= POLLOUT;
     }
-
     log_trace(
         "Poll::RegisterEvent update event: fd = %d event:events=0x%x pfd "
         "events=0x%x",
         io_event->GetFd(), io_event->GetEvents(), pfd.events);
-    if (pfd.events == 0) {
+    if (pfd.events == EV_NONE) {
       pfd.fd = -io_event->GetFd() - 1;
     }
   }
@@ -128,6 +123,9 @@ void Poll::UnRegisterEvent(IoEvent* io_event) {
       // 0 1 2 3 4 5 idx
       int end_fd = pfds_.back().fd;
       std::iter_swap(pfds_.begin() + idx, pfds_.end() - 1);
+      if (end_fd < 0) {
+        end_fd = -end_fd - 1;
+      }
       // change idx
       io_events_map[end_fd]->SetIndex(idx);
       pfds_.pop_back();

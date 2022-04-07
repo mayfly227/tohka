@@ -5,9 +5,9 @@
 #include "tcpserver.h"
 
 using namespace tohka;
-TcpServer::TcpServer(IoWatcher* io_watcher, NetAddress& bind_address)
-    : io_watcher_(io_watcher),
-      acceptor_(std::make_unique<Acceptor>(io_watcher, bind_address)),
+TcpServer::TcpServer(IoLoop* loop, NetAddress& bind_address)
+    : loop_(loop),
+      acceptor_(std::make_unique<Acceptor>(loop_, bind_address)),
       on_connection_(DefaultOnConnection),
       on_message_(DefaultOnMessage),
       conn_id_(1) {
@@ -28,7 +28,7 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
            name.c_str(), conn_fd);
   ++conn_id_;
   auto new_conn =
-      std::make_shared<TcpEvent>(io_watcher_, name, conn_fd, peer_address);
+      std::make_shared<TcpEvent>(loop_, name, conn_fd, peer_address);
 
   //  connection_map_[name] = new_conn;
   connection_map_.emplace(name, new_conn);

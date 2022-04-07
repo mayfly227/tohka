@@ -10,10 +10,9 @@
 
 using namespace tohka;
 
-TcpClient::TcpClient(IoWatcher* io_watcher, const NetAddress& peer,
-                     std::string name)
-    : io_watcher_(io_watcher),
-      connector_(std::make_shared<Connector>(io_watcher_, peer)),
+TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
+    : loop_(loop),
+      connector_(std::make_shared<Connector>(loop_, peer)),
       retry_(false),
       connect_(true),
       on_connection_(DefaultOnConnection),
@@ -62,7 +61,7 @@ void TcpClient::OnConnect(int sock_fd) {
            sock_fd);
   NetAddress peer_address = connector_->GetPeerAddress();
   auto new_conn =
-      std::make_shared<TcpEvent>(io_watcher_, name, sock_fd, peer_address);
+      std::make_shared<TcpEvent>(loop_, name, sock_fd, peer_address);
 
   new_conn->SetOnConnection(on_connection_);
   new_conn->SetOnOnMessage(on_message_);

@@ -12,7 +12,7 @@
 namespace tohka {
 class IoEvent : noncopyable {
  public:
-  IoEvent(IoWatcher* io_watcher, int fd);
+  IoEvent(IoLoop* loop, int fd);
 
   // Register to the monitor event of Poll
   void Register();
@@ -59,13 +59,14 @@ class IoEvent : noncopyable {
   bool IsWriting() const { return events_ & EV_WRITE; }
   bool IsReading() const { return events_ & EV_READ; }
 
+  IoLoop* loop_;
+
  private:
   int fd_;
   short events_;
   short revents_;
-  int index_;  // for poller
 
-  IoWatcher* io_watcher_;
+  int index_;  // for poller
   EventCallback read_callback_;
   EventCallback write_callback_;
 };

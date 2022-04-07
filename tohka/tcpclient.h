@@ -9,10 +9,9 @@
 #include "tcpevent.h"
 #include "tohka.h"
 namespace tohka {
-class IoWatcher;
 class TcpClient : noncopyable {
  public:
-  TcpClient(IoWatcher* io_watcher, const NetAddress& peer, std::string name);
+  TcpClient(IoLoop* loop, const NetAddress& peer, std::string name);
   ~TcpClient();
 
   void Connect();
@@ -39,7 +38,7 @@ class TcpClient : noncopyable {
  private:
   void OnConnect(int sock_fd);
   void RemoveConnection(const TcpEventPrt_t& conn);
-  IoWatcher* io_watcher_;
+  IoLoop* loop_;
   // 持有连接器的共享指针
   using ConnectorPrt_t = std::shared_ptr<Connector>;
   ConnectorPrt_t connector_;

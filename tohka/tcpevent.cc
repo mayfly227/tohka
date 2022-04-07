@@ -16,10 +16,9 @@ void tohka::DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf) {
   buf->ReceiveAllAsString();
 }
 
-TcpEvent::TcpEvent(IoWatcher* io_watcher, std::string name, int fd,
-                   NetAddress& peer)
-    : io_watcher_(io_watcher),
-      event_(std::make_unique<IoEvent>(io_watcher, fd)),
+TcpEvent::TcpEvent(IoLoop* loop, std::string name, int fd, NetAddress& peer)
+    : loop_(loop),
+      event_(std::make_unique<IoEvent>(loop_, fd)),
       socket_(std::make_unique<Socket>(fd)),
       peer_(peer),
       name_(std::move(name)),
@@ -122,6 +121,7 @@ void TcpEvent::DoClose() {
 }
 void TcpEvent::DoError() {
   int err = socket_->GetSocketError();
+  //  if(err )
   char buff[256]{};
   strerror_r(err, buff, sizeof buff);
   log_error("TcpEvent::DoError SO_ERROR=%d msg=%s fd=%d", err, buff,

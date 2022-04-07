@@ -8,9 +8,9 @@
 #include "util/log.h"
 using namespace tohka;
 
-Connector::Connector(IoWatcher* io_watcher, const NetAddress& peer)
-    : retry_delay_ms_(kInitDelayMs),
-      io_watcher_(io_watcher),
+Connector::Connector(IoLoop* loop, const NetAddress& peer)
+    : loop_(loop),
+      retry_delay_ms_(kInitDelayMs),
       peer_(peer),
       state_(kDisconnected),
       connect_(false),
@@ -28,7 +28,7 @@ void Connector::OnConnect() {
     // TODO 这时连接已经(不一定？)成功，要把poll中的event去掉
     RemoveAndResetEvent();
     // handle error
-    // 使用getsockname和getpeername判断是否是真正的连接成功了
+    // TODO  使用getsockname和getpeername判断是否是真正的连接成功了
     int err = sock_->GetSocketError();
     if (err) {
       log_trace("Connector::OnConnect err");
@@ -100,7 +100,7 @@ void Connector::Start() {
 void Connector::Connecting() {
   SetState(kConnecting);
   // 设置写事件
-  event_ = std::make_unique<IoEvent>(io_watcher_, sock_->GetFd());
+  event_ = std::make_unique<IoEvent>(loop_, sock_->GetFd());
   //  event_.reset(new IoEvent(io_watcher_,sock_.GetFd()));
   event_->SetWriteCallback([this] { OnConnect(); });
   //  event_->SetErrorCallback([this] { OnError(); });

@@ -4,14 +4,15 @@
 
 #include "acceptor.h"
 
+#include "ioloop.h"
 #include "util/log.h"
 
 using namespace tohka;
-Acceptor::Acceptor(IoWatcher* io_watcher, NetAddress bind_address)
-    : socket_(Socket::CreateNonBlockFd(AF_INET, SOCK_STREAM, IPPROTO_TCP)),
-      event_(io_watcher, socket_.GetFd()),
-      io_watcher_(io_watcher) {
-// FIXME idle only support on unix
+Acceptor::Acceptor(IoLoop* loop, NetAddress bind_address)
+    : loop_(loop),
+      socket_(Socket::CreateNonBlockFd(AF_INET, SOCK_STREAM, IPPROTO_TCP)),
+      event_(loop_, socket_.GetFd()) {
+// hint: idle only support on unix
 #if defined(OS_UNIX)
   idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
 #endif

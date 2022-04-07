@@ -9,6 +9,7 @@
 #include "platform.h"
 
 namespace tohka {
+class IoLoop;
 class IoEvent;
 class IoBuf;
 class TcpEvent;
@@ -41,6 +42,7 @@ using OnMessageCallback =
 using OnWriteDoneCallback = std::function<void(const TcpEventPrt_t& conn)>;
 
 using OnCloseCallback = std::function<void(const TcpEventPrt_t& conn)>;
+using OnHighWaterMark = std::function<void(const TcpEventPrt_t& conn)>;
 
 // for tcp event
 void DefaultOnConnection(const TcpEventPrt_t& conn);

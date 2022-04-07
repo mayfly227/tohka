@@ -13,11 +13,9 @@
 #include "util/log.h"
 
 namespace tohka {
-class IoWatcher;
-
 class Acceptor : noncopyable {
  public:
-  Acceptor(IoWatcher* io_watcher, NetAddress bind_address);
+  Acceptor(IoLoop* loop, NetAddress bind_address);
   ~Acceptor();
 
   void SetOnAccept(const OnAcceptCallback& on_accept) {
@@ -28,10 +26,10 @@ class Acceptor : noncopyable {
 
  private:
   void OnAccept();
-  static constexpr int kMaxConn = 200000; 
+  static constexpr int kMaxConn = 200000;
+  IoLoop* loop_;
   Socket socket_;
   IoEvent event_;
-  IoWatcher* io_watcher_;
   int idle_fd_;  // For discarding failed connections
 
   OnAcceptCallback on_accept_;
