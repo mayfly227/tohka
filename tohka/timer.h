@@ -5,38 +5,38 @@
 #ifndef TOHKA_TOHKA_TIMER_H
 #define TOHKA_TOHKA_TIMER_H
 
-
+#include "noncopyable.h"
 #include "timepoint.h"
 #include "tohka.h"
+#include "util/log.h"
 namespace tohka {
-class Timer {
+class Timer : noncopyable {
  public:
   Timer() = delete;
-  Timer(TimePoint expired_time, TimerCallback timer_callback)
-      : expired_time_(expired_time),
-        timer_callback_(std::move(timer_callback)){};
-  Timer(TimePoint expired_time, TimerCallback timer_callback, int64_t delay,
-        bool repeat = false)
+  ~Timer() { log_debug("delete id %ld", timer_id_); }
+  Timer(TimePoint expired_time, TimerCallback timer_callback, int32_t interval)
       : expired_time_(expired_time),
         timer_callback_(std::move(timer_callback)),
-        repeat_{repeat},
-        delay_{delay} {};
+        interval_(interval),
+        repeat_(interval > 0),
+        timer_id_(auto_increment_id_.fetch_add(1)) {
+    log_debug("create id %ld", timer_id_);
+  };
   void run() { timer_callback_(); }
 
   TimePoint GetExpiredTime() const { return expired_time_; }
-  void SetExpiredTime(const TimePoint ExpiredTime) {
-    expired_time_ = ExpiredTime;
-  }
+  int64_t GetTimerId() const { return timer_id_; }
   bool IsRepeat() const { return repeat_; }
-  void SetRepeat(bool Repeat) { repeat_ = Repeat; }
-  int64_t GetDelay() const { return delay_; }
-  void SetDelay(int64_t Delay) { delay_ = Delay; }
+
+  void Restart(TimePoint now);
 
  private:
   TimePoint expired_time_;
   TimerCallback timer_callback_;
-  bool repeat_{false};
-  int64_t delay_{-1};  // ms
+  int32_t interval_;
+  bool repeat_;
+  int64_t timer_id_;
+  static std::atomic<int64_t> auto_increment_id_;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_TIMER_H
