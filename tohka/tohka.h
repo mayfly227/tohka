@@ -20,7 +20,7 @@ class NetAddress;
 class Timer;
 
 // typedef
-using TimerPrt_t = std::unique_ptr<Timer>;
+using TimerPrt_t = std::shared_ptr<Timer>;
 using TcpEventPrt_t = std::shared_ptr<TcpEvent>;
 
 using EventList = std::vector<IoEvent*>;

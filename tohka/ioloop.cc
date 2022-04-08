@@ -41,6 +41,7 @@ namespace {
 //   printf("signo=%d\n", signo);
 //   exit(0);
 // }
+thread_local IoLoop* current_loop_thread = nullptr;
 
 class IgnoreSigPipe {
  public:
@@ -53,17 +54,25 @@ class IgnoreSigPipe {
 IgnoreSigPipe isp;
 }  // namespace
 #endif
-
 IoLoop::IoLoop()
     : io_watcher_(IoWatcher::ChooseIoWatcher()),
-      timer_manager_(
-          std::make_unique<TimerManager>()),  // TODO choose poller by os
+      timer_manager_(std::make_unique<TimerManager>()),
       running_(false) {
   // init log level
   log_set_level(LOG_INFO);
+  if (current_loop_thread) {
+    log_fatal("Another EventLoop exists in this thread! At:%p",
+              current_loop_thread);
+  } else {
+    current_loop_thread = this;
+  }
 }
 
 void IoLoop::RunForever() {
+  if (current_loop_thread != this) {
+    log_fatal("this thread has thread at %p", current_loop_thread);
+    return;
+  }
   running_ = true;
   std::vector<IoEvent*> activate_event_list;
   while (running_) {
@@ -78,32 +87,29 @@ void IoLoop::RunForever() {
       event->ExecuteEvent();
     }
     // do timer
-    for (auto& timer : timer_manager_->GetExpiredTimers()) {
-      timer->run();
-      if (timer->IsRepeat()) {
-        const auto when = timer->GetExpiredTime() + (int)timer->GetDelay();
-        timer_manager_->AddTimer(when, std::move(timer));
-      }
-      // timer delete there
-    }
+    timer_manager_->DoExpiredTimers();
   }
 }
-void IoLoop::CallAt(TimePoint when, IoLoop::TimerTask callback) {
-  auto timer = std::make_unique<Timer>(when, std::move(callback));
-  timer_manager_->AddTimer(when, move(timer));
+TimerId IoLoop::CallAt(TimePoint when, TimerTask callback) {
+  return timer_manager_->AddTimer(when, std::move(callback), 0);
 }
-void IoLoop::CallLater(int delay, IoLoop::TimerTask callback) {
-  auto now = TimePoint::now();
-  CallAt(now + delay, std::move(callback));
+TimerId IoLoop::CallLater(int delay, TimerTask callback) {
+  auto expired = TimePoint::now() + delay;
+  return CallAt(expired, std::move(callback));
 }
-void IoLoop::CallEvery(int interval, IoLoop::TimerTask callback) {
-  auto when = TimePoint::now() + interval;
-  auto timer =
-      std::make_unique<Timer>(when, std::move(callback), interval, true);
-  timer_manager_->AddTimer(when, std::move(timer));
+TimerId IoLoop::CallEvery(int interval, TimerTask callback) {
+  auto expired = TimePoint::now() + interval;
+  return timer_manager_->AddTimer(expired, std::move(callback), interval);
 }
 IoWatcher* IoLoop::GetWatcherRawPoint() { return io_watcher_.get(); }
 IoLoop* IoLoop::GetLoop() {
-  static IoLoop loop;
-  return &loop;
+  if (!current_loop_thread) {
+    static IoLoop loop;
+    log_info("create static loop");
+    current_loop_thread = &loop;
+  }
+  return current_loop_thread;
+}
+void IoLoop::DeleteTimer(TimerId timer_id) {
+  timer_manager_->DeleteTimer(timer_id);
 }

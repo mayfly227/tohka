@@ -91,6 +91,7 @@
 // c++ header
 #include <algorithm>
 #include <any>
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <map>
