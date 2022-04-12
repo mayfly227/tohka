@@ -28,7 +28,7 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
 
         short what = pfd.revents;
         short res = 0;
-        ReventsToString(what);
+        //        ReventsToString(what);
         if (what & (POLLHUP | POLLERR | POLLNVAL)) {
           what |= POLLIN | POLLOUT;
         }

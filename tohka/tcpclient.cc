@@ -23,7 +23,7 @@ TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
       std::bind(&TcpClient::OnConnect, this, std::placeholders::_1));
 }
 TcpClient::~TcpClient() {
-  log_trace("[TcpClient::~TcpClient]");
+  log_info("[TcpClient::~TcpClient]");
   TcpEventPrt_t conn;
   bool unique;
   unique = (connection_.use_count() == 1);
@@ -57,7 +57,7 @@ void TcpClient::Stop() {
 }
 void TcpClient::OnConnect(int sock_fd) {
   auto name = connector_->GetPeerAddress().GetIpAndPort();
-  log_info("[TcpClient::onConnect]->Connect to %s fd = %d", name.c_str(),
+  log_info("[TcpClient::onConnect]->Connected to %s fd = %d", name.c_str(),
            sock_fd);
   NetAddress peer_address = connector_->GetPeerAddress();
   auto new_conn =
@@ -76,9 +76,11 @@ void TcpClient::OnConnect(int sock_fd) {
 }
 
 void TcpClient::RemoveConnection(const TcpEventPrt_t& conn) {
-  log_trace("TcpClient::removeConnection");
+  log_info("[TcpClient::removeConnection]->remove connection from %s",
+           connector_->GetPeerAddress().GetIpAndPort().c_str());
   assert(connection_ == conn);
   connection_.reset();
+  // remove from pollfd
   conn->ConnectDestroyed();
   if (retry_ && connect_) {
     log_info("[TcpClient::removeConnection]->try to reconnecting to %s",

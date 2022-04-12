@@ -14,15 +14,17 @@ class NetAddress {
   explicit NetAddress(uint16_t port, bool ipv6 = false);
   NetAddress(const std::string& ip, int16_t port, bool ipv6 = false);
 
-  std::string GetIp();
-  uint16_t GetPort();
-  std::string GetIpAndPort();
+  sa_family_t GetFamily() const;
+  std::string GetIp() const;
+  uint16_t GetPort() const;
+  std::string GetIpAndPort() const;
 
-  std::any GetAddress();
-  uint32_t GetSize();
+  sockaddr* GetAddress();
+  uint32_t GetSize() const;
+
+  void SetSockAddrInet6(sockaddr_in6& in6);
 
  private:
-  bool ipv6_ = false;
   union {
     struct sockaddr_in in4_;
     struct sockaddr_in6 in6_;

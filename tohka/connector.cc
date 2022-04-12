@@ -25,14 +25,13 @@ void Connector::OnConnect() {
   // call user callback
   log_trace("Connector::OnConnect");
   if (state_ == kConnecting) {
-    // TODO 这时连接已经(不一定？)成功，要把poll中的event去掉
+    // HINT 这时候连接不一定成功，但是我们任然要把poll中的event去掉
     RemoveAndResetEvent();
-    // handle error
-    // TODO  使用getsockname和getpeername判断是否是真正的连接成功了
-    int err = sock_->GetSocketError();
+    // HINT 判断是否是真正连接成功
+    int err = sock_->GetPeerName(peer_);
     if (err) {
       log_trace("Connector::OnConnect err");
-      // 一定后时间重连
+      // 如果没有真正连接成功，那么一定后时间重连
       Retry();
     } else {
       SetState(kConnected);
@@ -47,7 +46,8 @@ void Connector::OnConnect() {
   }
 }
 void Connector::Connect() {
-  sock_ = std::make_unique<Socket>(Socket::CreateNonBlockFd());
+  sock_ = std::make_unique<Socket>(
+      Socket::CreateNonBlockFd(peer_.GetFamily(), SOCK_STREAM, IPPROTO_TCP));
 
   int ret = sock_->Connect(peer_);
   int saved_errno = (ret == 0) ? 0 : errno;
@@ -86,7 +86,8 @@ void Connector::Connect() {
       break;
 
     default:
-      log_error("Connector::Connect Unexpected error");
+      log_error("Connector::Connect Unexpected error errno=%d errmsg = %s",
+                errno, strerror(errno));
       sock_->Close();
       // connectErrorCallback_();
       break;
@@ -99,16 +100,9 @@ void Connector::Start() {
 }
 void Connector::Connecting() {
   SetState(kConnecting);
-  // 设置写事件
   event_ = std::make_unique<IoEvent>(loop_, sock_->GetFd());
-  //  event_.reset(new IoEvent(io_watcher_,sock_.GetFd()));
   event_->SetWriteCallback([this] { OnConnect(); });
-  //  event_->SetErrorCallback([this] { OnError(); });
-  // FIXME bug only on unix(connect to unbind localhost will trigger
-  // onclose[POLLHUP])
-  //  event_->SetCloseCallback([this] { OnClose(); });
-
-  // 监听写事件，如果socket可写，那么就会触发OnConnect回调
+  // 设置写事件，当连接的socket失败或者成功时会调用OnConnect回调
   event_->EnableWriting();
 }
 void Connector::Retry() {
@@ -125,18 +119,7 @@ void Connector::Retry() {
     log_debug("[Connector::Retry]->do not reconnect");
   }
 }
-void Connector::OnError() {
-  log_error("Connector::OnError state=%d", state_);
-  if (state_ == kConnecting) {
-    log_trace("Connector::OnError retry");
-    RemoveAndResetEvent();
-    int err = sock_->GetSocketError();
-    char buff[256]{};
-    strerror_r(err, buff, sizeof buff);
-    log_trace("Connector::OnError SO_ERROR=%d msg=%s", err, buff);
-    Retry();
-  }
-}
+
 void Connector::Stop() {
   connect_ = false;
   if (state_ == kConnecting) {

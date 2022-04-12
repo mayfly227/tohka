@@ -24,7 +24,7 @@ class Connector {
   void Stop();
 
   // internal use only
-  void EnbaleConnectTimeout(bool on) { enable_connect_timeout_ = on; };
+  void EnableConnectTimeout(bool on) { enable_connect_timeout_ = on; };
   // internal use only
   void SetConnectTimeout(int connect_timeout_ms) {
     connect_timeout_ms_ = connect_timeout_ms;
@@ -35,7 +35,6 @@ class Connector {
   enum State { kDisconnected, kConnecting, kConnected };
   void OnConnect();
   void OnClose();
-  void OnError();
   void Connect();
   void Connecting();
   void Retry();

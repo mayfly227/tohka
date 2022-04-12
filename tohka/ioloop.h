@@ -25,7 +25,7 @@ class IoLoop : public noncopyable {
   TimerId CallAt(TimePoint when, TimerTask callback);
   TimerId CallLater(int delay, TimerTask callback);
   TimerId CallEvery(int interval, TimerTask callback);
-  void DeleteTimer(TimerId timer_id);
+  void DeleteTimer(const TimerId& timer_id);
 
   IoWatcher* GetWatcherRawPoint();
   static IoLoop* GetLoop();

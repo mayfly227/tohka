@@ -43,15 +43,14 @@ namespace {
 // }
 thread_local IoLoop* current_loop_thread = nullptr;
 
-class IgnoreSigPipe {
+class SignalHandler {
  public:
-  IgnoreSigPipe() {
+  SignalHandler() {
     // ::signal(SIGPIPE, sig_int);
     ::signal(SIGPIPE, SIG_IGN);
-    // LOG_TRACE << "Ignore SIGPIPE";
   }
 };
-IgnoreSigPipe isp;
+SignalHandler SH;
 }  // namespace
 #endif
 IoLoop::IoLoop()
@@ -110,6 +109,6 @@ IoLoop* IoLoop::GetLoop() {
   }
   return current_loop_thread;
 }
-void IoLoop::DeleteTimer(TimerId timer_id) {
+void IoLoop::DeleteTimer(const TimerId& timer_id) {
   timer_manager_->DeleteTimer(timer_id);
 }

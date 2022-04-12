@@ -10,9 +10,10 @@
 using namespace tohka;
 Acceptor::Acceptor(IoLoop* loop, NetAddress bind_address)
     : loop_(loop),
-      socket_(Socket::CreateNonBlockFd(AF_INET, SOCK_STREAM, IPPROTO_TCP)),
+      socket_(Socket::CreateNonBlockFd(bind_address.GetFamily(), SOCK_STREAM,
+                                       IPPROTO_TCP)),
       event_(loop_, socket_.GetFd()) {
-// hint: idle only support on unix
+// HINT: idle only support on unix
 #if defined(OS_UNIX)
   idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
 #endif
@@ -25,8 +26,8 @@ Acceptor::Acceptor(IoLoop* loop, NetAddress bind_address)
 };
 
 void Acceptor::OnAccept() {
-  NetAddress peer_address;
-  // TODO support ipv6?
+  NetAddress peer_address{};
+  // TODO ipv6 test?
   int conn_fd = socket_.Accept(&peer_address);
   if (conn_fd > 0 && conn_fd <= kMaxConn) {
     if (on_accept_) {

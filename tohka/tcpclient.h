@@ -18,7 +18,7 @@ class TcpClient : noncopyable {
   void Disconnect();
   void Stop();
 
-  void EnbaleConnectTimeout(bool on) { connector_->EnbaleConnectTimeout(on); };
+  void EnableConnectTimeout(bool on) { connector_->EnableConnectTimeout(on); };
 
   void SetConnectTimeout(int connect_timeout_ms) {
     connector_->SetConnectTimeout(connect_timeout_ms);

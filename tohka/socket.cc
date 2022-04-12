@@ -24,10 +24,7 @@ Socket::~Socket() {
   Close();
 }
 void Socket::BindAddress(NetAddress& address) const {
-  //  auto s = std::any_cast<sockaddr*>(address.GetAddress());
-  //  auto size = address.GetSize();
-  int ret = ::bind(fd_, std::any_cast<sockaddr*>(address.GetAddress()),
-                   address.GetSize());
+  int ret = ::bind(fd_, address.GetAddress(), address.GetSize());
   if (ret < 0) {
     log_error("bind error! errno=%d errstr = %s", errno, strerror(errno));
   }
@@ -41,9 +38,11 @@ void Socket::Listen() const {
 }
 
 int Socket::Accept(NetAddress* peer_address) const {
-  socklen_t sock_len = peer_address->GetSize();
-  int conn_fd = ::accept(
-      fd_, std::any_cast<sockaddr*>(peer_address->GetAddress()), &sock_len);
+  struct sockaddr_in6 socket_address6 {};
+  ::memset(&socket_address6, 0, sizeof(socket_address6));
+  socklen_t sock_len = sizeof(socket_address6);
+
+  int conn_fd = ::accept(fd_, (sockaddr*)&socket_address6, &sock_len);
   Socket::SetNonBlockAndCloseOnExec(conn_fd);
   // TODO For debug only
   //  int opt = 3;
@@ -56,13 +55,13 @@ int Socket::Accept(NetAddress* peer_address) const {
     log_error("[Socket::Accept]->accept error! errno=%d errstr = %s", errno,
               strerror(errno));
   }
+  peer_address->SetSockAddrInet6(socket_address6);
   return conn_fd;
 }
 
 int Socket::Connect(NetAddress& peer_address) const {
   socklen_t sock_len = peer_address.GetSize();
-  return ::connect(fd_, std::any_cast<sockaddr*>(peer_address.GetAddress()),
-                   sock_len);
+  return ::connect(fd_, peer_address.GetAddress(), sock_len);
 }
 
 void Socket::SetTcpNoDelay(bool on) const {
@@ -128,7 +127,7 @@ void Socket::SetNonBlockAndCloseOnExec(int sock_fd) {
 }
 
 int Socket::CreateNonBlockFd(int domain, int type, int protocol) {
-  int sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  int sock = ::socket(domain, type, protocol);
   if (sock < 0) {
     log_error("create socket error! errno=%d errstr = %s", errno,
               strerror(errno));
@@ -158,9 +157,19 @@ void Socket::ShutDownWrite() const {
   }
 }
 
+int Socket::GetPeerName(NetAddress& peer) const {
+  socklen_t len = peer.GetSize();
+  if (::getpeername(fd_, peer.GetAddress(), &len) < 0) {
+    log_error("[ Socket::GetPeerName] error fd = %d errmsg = %s", fd_,
+              strerror(errno));
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
 #ifdef OS_UNIX
 ssize_t Socket::ReadV(const struct iovec* vec, int len) const {
   return ::readv(fd_, vec, len);
 }
-
 #endif

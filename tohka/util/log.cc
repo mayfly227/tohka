@@ -73,13 +73,13 @@ static void file_callback(log_Event* ev) {
   ::fflush(static_cast<FILE*>(ev->udata));
 }
 
-static void lock(void) {
+static void lock() {
   if (L.lock) {
     L.lock(true, L.udata);
   }
 }
 
-static void unlock(void) {
+static void unlock() {
   if (L.lock) {
     L.lock(false, L.udata);
   }

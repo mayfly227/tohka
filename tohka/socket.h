@@ -37,10 +37,10 @@ class Socket : noncopyable {
   void SetKeepAlive(bool on) const;
 
   int GetSocketError() const;
+  int GetPeerName(NetAddress& peer) const;
   static void SetNonBlockAndCloseOnExec(int sock_fd);
   // TODO support ipv6 & udp now is ipv4 only
-  static int CreateNonBlockFd(int domain = AF_INET, int type = SOCK_STREAM,
-                              int protocol = IPPROTO_TCP);
+  static int CreateNonBlockFd(int domain, int type, int protocol);
 
  private:
   int fd_;
