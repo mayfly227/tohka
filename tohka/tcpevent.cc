@@ -137,6 +137,10 @@ TcpEvent::~TcpEvent() {
 void TcpEvent::ConnectEstablished() {
   assert(state_ == kConnecting);
   SetState(kConnected);
+
+  // 这里需要ioevent把tcpevent绑住，
+  // 因为前者的执行event的时候可能后者已经被析构了
+  event_->Tie(shared_from_this());
   StartReading();
 
   // on connection open(accepted callback)
@@ -158,7 +162,7 @@ void TcpEvent::ConnectDestroyed() {
     }
   }
   // remove event from event map and  remove fd from pfds
-  event_->UnRegister();
+  //  event_->UnRegister();
 }
 void TcpEvent::Send(std::string_view msg) { Send(msg.data(), msg.size()); }
 void TcpEvent::Send(const char* data, size_t len) {

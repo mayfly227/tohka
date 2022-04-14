@@ -15,3 +15,5 @@ cmake-build-debug/*
 .vscode/*
 .cache/*
 .DS_Store
+pycode/*
+config.h

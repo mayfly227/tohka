@@ -1,4 +1,4 @@
-Checks: '-*,
+Checks: "-*,
 bugprone-argument-comment,
 bugprone-assert-side-effect,
 bugprone-bad-signal-to-kill-thread,
@@ -143,4 +143,10 @@ readability-static-accessed-through-instance,
 readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
-readability-use-anyofallo'
+readability-use-anyofallo"
+User: "dengkang"
+CheckOptions:
+  - key: modernize-use-auto.MinTypeNameLength
+    value: '80'
+ExtraArgs:
+  - '-Wno-sign-conversion'

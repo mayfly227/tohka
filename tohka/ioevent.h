@@ -8,11 +8,12 @@
 #include "iowatcher.h"
 #include "noncopyable.h"
 #include "tohka.h"
-
+#include "util/log.h"
 namespace tohka {
 class IoEvent : noncopyable {
  public:
   IoEvent(IoLoop* loop, int fd);
+  ~IoEvent() { log_debug("~IoEvent at %p", this); }
 
   // Register to the monitor event of Poll
   void Register();
@@ -49,6 +50,8 @@ class IoEvent : noncopyable {
     write_callback_ = std::move(write_callback);
   }
 
+  // HINT: 延长ioevent的生命周期
+  void Tie(const std::shared_ptr<void>& tie);
   short GetEvents() const { return events_; }
   void SetEvents(short events) { events_ = events; }
   short GetRevents() const { return revents_; }
@@ -65,7 +68,9 @@ class IoEvent : noncopyable {
   int fd_;
   short events_;
   short revents_;
-
+  void SafeExecuteEvent();
+  std::weak_ptr<void> tie_obj_;
+  bool tied_;
   int index_;  // for poller
   EventCallback read_callback_;
   EventCallback write_callback_;
