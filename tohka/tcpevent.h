@@ -51,7 +51,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void ForceClose();
 
   void SetContext(const std::any& context) { context_ = context; }
-  std::any& GetContext() { return context_; }
+  const std::any& GetContext() { return context_; }
   bool Connected() { return state_ == kConnected; }
   std::string GetPeerIp() { return peer_.GetIp(); };
   uint16_t GetPeerPort() { return peer_.GetPort(); };
@@ -68,7 +68,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void SetOnClose(const OnCloseCallback& on_close) { on_close_ = on_close; }
   // Be called when this connection establishing(call on accept)
   void ConnectEstablished();
-  // Be called when this connection destroying (call on Close)
+  // Be called when this connection destroying (call on Close_)
   void ConnectDestroyed();
 
  private:

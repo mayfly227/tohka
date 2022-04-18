@@ -5,13 +5,13 @@
 #include "acceptor.h"
 
 #include "ioloop.h"
+#include "socketutil.h"
 #include "util/log.h"
-
 using namespace tohka;
 Acceptor::Acceptor(IoLoop* loop, NetAddress bind_address)
     : loop_(loop),
-      socket_(Socket::CreateNonBlockFd(bind_address.GetFamily(), SOCK_STREAM,
-                                       IPPROTO_TCP)),
+      socket_(SockUtil::CreateNonBlockFd_(bind_address.GetFamily(), SOCK_STREAM,
+                                          IPPROTO_TCP)),
       event_(loop_, socket_.GetFd()) {
 // HINT: idle only support on unix
 #if defined(OS_UNIX)
@@ -35,7 +35,7 @@ void Acceptor::OnAccept() {
     } else {
       log_warn("no OnAccept callback!");
 #if defined(OS_UNIX)
-      ::close(conn_fd);
+      SockUtil::Close_(conn_fd);
 #endif
     }
   } else {
@@ -55,10 +55,10 @@ Acceptor::~Acceptor() {
   event_.DisableAll();
   event_.UnRegister();
 #if defined(OS_UNIX)
-  ::close(idle_fd_);
+  SockUtil::Close_(idle_fd_);
 #endif
 }
 void Acceptor::Listen() {
-  socket_.Listen();
+  socket_.Listen(kBackLog);
   event_.EnableReading();
 }

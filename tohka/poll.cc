@@ -14,15 +14,22 @@ using namespace tohka;
 Poll::Poll() { pfds_.reserve(kInitialSize); }
 
 TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
-  //调用poll 并构造活动的事件
+  // 调用poll 并构造活动的事件
   int active_events = poll(pfds_.data(), pfds_.size(), timeout);
   if (active_events > 0) {
     log_trace("Poll::PollEvents %d events happened", active_events);
     for (const auto pfd : pfds_) {
       if (pfd.revents > 0) {
         auto it = io_events_map.find(pfd.fd);
+        if (it == io_events_map.end()) {
+          log_fatal("ffff");
+        }
+        assert(io_events_map.size() == pfds_.size());
         assert(it != io_events_map.end());
         IoEvent* event = it->second;
+        if (pfd.fd != event->GetFd()) {
+          log_fatal("gggggg");
+        }
         assert(pfd.fd == event->GetFd());
         //  event->SetEvents(pfd.events);
 
@@ -61,6 +68,11 @@ void Poll::RegisterEvent(IoEvent* io_event) {
   // There are two situations: one is to add new event,
   // and the other is to update existing event
   if (io_event->GetIndex() == -1) {
+    // 保证这个fd不存在io_events_map
+    if (io_events_map.find(io_event->GetFd()) != io_events_map.end()) {
+      log_error("RegisterEvent,fd = %d", io_event->GetFd());
+    }
+    assert(io_events_map.find(io_event->GetFd()) == io_events_map.end());
     struct pollfd pfd {};
     pfd.events = 0;
     pfd.revents = 0;
@@ -82,9 +94,13 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     log_trace("Poll::RegisterEvent new event:fd = %d events=%d revents=%d",
               io_event->GetFd(), io_event->GetEvents(), io_event->GetRevents());
   } else {
+    assert(io_events_map.find(io_event->GetFd()) != io_events_map.end());
+    assert(io_events_map[io_event->GetFd()] == io_event);
+
     int index = io_event->GetIndex();
     assert(index >= 0 && index < pfds_.size());
     auto& pfd = pfds_.at(index);
+    assert(pfd.fd == io_event->GetFd() || pfd.fd == -io_event->GetFd() - 1);
     short events = io_event->GetEvents();
     pfd.fd = io_event->GetFd();
     pfd.events = EV_NONE;
@@ -95,13 +111,13 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     if (events & EV_WRITE) {
       pfd.events |= POLLOUT;
     }
+    if (pfd.events == EV_NONE) {
+      pfd.fd = -io_event->GetFd() - 1;
+    }
     log_trace(
         "Poll::RegisterEvent update event: fd = %d event:events=0x%x pfd "
         "events=0x%x",
         io_event->GetFd(), io_event->GetEvents(), pfd.events);
-    if (pfd.events == EV_NONE) {
-      pfd.fd = -io_event->GetFd() - 1;
-    }
   }
 }
 
@@ -109,13 +125,25 @@ void Poll::UnRegisterEvent(IoEvent* io_event) {
   auto it = io_events_map.find(io_event->GetFd());
   if (it != io_events_map.end()) {
     int fd = it->first;
-    log_trace("Poll::UnRegisterEvent remove fd = %d", fd);
+
+    assert(io_events_map.find(io_event->GetFd()) != io_events_map.end());
     assert(fd == it->second->GetFd());
     assert(io_events_map[fd] == io_event);
+    assert(io_event->GetEvents() == EV_NONE);
+
     assert((-io_event->GetFd() - 1) == pfds_[io_event->GetIndex()].fd);
 
     int idx = io_event->GetIndex();
+    assert(idx >= 0 && idx < pfds_.size());
+    const auto& pfd = pfds_[idx];
+    assert(pfd.fd == -io_event->GetFd() - 1 &&
+           pfd.events == io_event->GetEvents());
+    size_t n = io_events_map.erase(io_event->GetFd());
+    assert(n == 1);
+    (void)n;
     if (idx == pfds_.size() - 1) {
+      log_trace("Poll::UnRegisterEvent remove fd = %d back = %d", fd,
+                pfds_.back());
       pfds_.pop_back();
     } else {
       // remove fd from pfds( O(1) )
@@ -128,10 +156,10 @@ void Poll::UnRegisterEvent(IoEvent* io_event) {
       }
       // change idx
       io_events_map[end_fd]->SetIndex(idx);
+      log_trace("Poll::UnRegisterEvent remove fd = %d end fd = %d back = %d",
+                fd, end_fd, pfds_.back());
       pfds_.pop_back();
     }
-    io_events_map.erase(it);
-
   } else {
     // warning
     log_warn("can not find event fd=%d", io_event->GetFd());

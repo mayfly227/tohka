@@ -33,18 +33,19 @@ class TcpClient : noncopyable {
   }
   void SetRetry(bool status) { retry_ = status; }
 
-  bool GetRetry() const { return retry_; }
+  bool IsRetry() const { return retry_; }
 
  private:
   void OnConnect(int sock_fd);
   void RemoveConnection(const TcpEventPrt_t& conn);
   IoLoop* loop_;
   // 持有连接器的共享指针
-  using ConnectorPrt_t = std::shared_ptr<Connector>;
+  using ConnectorPrt_t = std::unique_ptr<Connector>;
   ConnectorPrt_t connector_;
   TcpEventPrt_t connection_;
   bool retry_;
   bool connect_;
+  int64_t conn_id_;
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;
   OnWriteDoneCallback on_write_done_;

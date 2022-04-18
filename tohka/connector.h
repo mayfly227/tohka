@@ -36,9 +36,9 @@ class Connector {
   void OnConnect();
   void OnClose();
   void Connect();
-  void Connecting();
-  void Retry();
-  void RemoveAndResetEvent();
+  void Connecting(int sock_fd);
+  void Retry(int sock_fd);
+  int RemoveAndResetEvent();
   void ResetEvent();
 
   void OnConnectTimeout();
@@ -49,7 +49,7 @@ class Connector {
   static constexpr int kDefaultTimeoutMs = 8000;
   IoLoop* loop_;
   int retry_delay_ms_;
-  std::unique_ptr<Socket> sock_;
+  //  std::unique_ptr<Socket> sock_;
   std::unique_ptr<IoEvent> event_;
   NetAddress peer_;
   State state_;

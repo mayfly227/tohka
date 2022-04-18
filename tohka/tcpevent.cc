@@ -34,31 +34,28 @@ void TcpEvent::HandleRead() {
   log_trace("TcpEvent::HandleRead fd = %d", socket_->GetFd());
   // TODO debug only(set read ext_buf size=1)
   ssize_t n;
-  // TODO only support unix (support windows)
 #if defined(OS_UNIX)
   char ext_buf[65535];
   struct iovec vec[2];
-  //  size_t writeable_size = in_buf_.GetWriteableSize();
+  const size_t writeable_size = in_buf_.GetWriteableSize();
   vec[0].iov_base = in_buf_.Begin() + in_buf_.GetWriteIndex();
-  vec[0].iov_len = in_buf_.GetWriteableSize();
+  vec[0].iov_len = writeable_size;
   vec[1].iov_base = ext_buf;
   vec[1].iov_len = sizeof(ext_buf);
-  const int vec_number = (in_buf_.GetWriteableSize() < sizeof(ext_buf)) ? 2 : 1;
+  const int vec_number = (writeable_size < sizeof(ext_buf)) ? 2 : 1;
   n = socket_->ReadV(vec, vec_number);  // read from fd
   // 也就是说还没有占满预分配的vector
   if (n > 0) {
-    if (n <= in_buf_.GetWriteableSize()) {
+    if (n <= writeable_size) {
       in_buf_.SetWriteIndex(in_buf_.GetWriteIndex() + n);
     } else {
       in_buf_.SetWriteIndex(in_buf_.GetBufferSize());
-      in_buf_.Append(ext_buf, n - in_buf_.GetWriteableSize());
+      in_buf_.Append(ext_buf, n - (long)writeable_size);
     }
   }
 
 #elif defined(OS_UNIX1)
   char ext_buf[65535];
-  // TODO: copy or increase a system call？
-  //  int can_write = in_buf_.GetWriteableSize();
   n = socket_->Read(ext_buf, 65535);  // read from fd
   if (n > 0) {
     in_buf_.Append(ext_buf, n);
@@ -69,7 +66,7 @@ void TcpEvent::HandleRead() {
     // call msg callback
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
-    log_trace("TcpEvent::HandleRead half Close", socket_->GetFd());
+    log_trace("TcpEvent::HandleRead half Close_", socket_->GetFd());
     DoClose();
   } else {
     log_error("[TcpEvent::HandleRead]-> read < 0 errno=%d errmsg = %s", errno,
@@ -85,7 +82,7 @@ void TcpEvent::HandleWrite() {
     log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
     if (n >= 0) {
       out_buf_.Retrieve(n);
-      // Once the data is written, Close the write event immediately to avoid
+      // Once the data is written, Close_ the write event immediately to avoid
       // busy loop
       if (out_buf_.GetReadableSize() == 0) {
         log_trace(
@@ -149,20 +146,8 @@ void TcpEvent::ConnectEstablished() {
   }
 }
 void TcpEvent::ConnectDestroyed() {
-  // 注意这种情况只会在event那里触发EV_CLOSE事件时被调用
-  // TODO delete
-  if (state_ == kConnected) {
-    exit(-999);
-    SetState(kDisconnected);
-    // TODO FIXME:why TcpEvent::DoClose() call event_->DisableAll();
-    StopAll();
-    // on connection Close(closed callback)
-    if (on_connection_) {
-      on_connection_(shared_from_this());
-    }
-  }
   // remove event from event map and  remove fd from pfds
-  //  event_->UnRegister();
+  event_->UnRegister();
 }
 void TcpEvent::Send(std::string_view msg) { Send(msg.data(), msg.size()); }
 void TcpEvent::Send(const char* data, size_t len) {

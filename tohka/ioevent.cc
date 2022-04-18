@@ -35,7 +35,8 @@ void IoEvent::Tie(const std::shared_ptr<void>& tie) {
   tied_ = true;
 }
 void IoEvent::SafeExecuteEvent() {
-  log_info("fd = %d IoEvent::ExecuteEvent() revents=0x%x", fd_, revents_);
+  log_trace("fd = %d IoEvent::ExecuteEvent() events=0x%x revents=0x%x", fd_,
+            events_, revents_);
   if ((events_ & EV_READ) && (revents_ & EV_READ)) {
     if (read_callback_) {
       read_callback_();

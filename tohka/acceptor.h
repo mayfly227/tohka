@@ -27,6 +27,7 @@ class Acceptor : noncopyable {
  private:
   void OnAccept();
   static constexpr int kMaxConn = 200000;
+  static constexpr int kBackLog = 512;
   IoLoop* loop_;
   Socket socket_;
   IoEvent event_;

@@ -13,7 +13,7 @@ namespace tohka {
 class IoEvent : noncopyable {
  public:
   IoEvent(IoLoop* loop, int fd);
-  ~IoEvent() { log_debug("~IoEvent at %p", this); }
+  ~IoEvent() { log_debug("~IoEvent at %p fd = %d", this, fd_); }
 
   // Register to the monitor event of Poll
   void Register();

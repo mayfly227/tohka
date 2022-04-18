@@ -5,6 +5,7 @@
 #include "connector.h"
 
 #include "ioloop.h"
+#include "socketutil.h"
 #include "util/log.h"
 using namespace tohka;
 
@@ -17,8 +18,12 @@ Connector::Connector(IoLoop* loop, const NetAddress& peer)
       enable_connect_timeout_(false),
       connect_timeout_ms_(kDefaultTimeoutMs) {}
 Connector::~Connector() {
-  log_trace("Connector::~Connector");
+  //  log_trace("Connector::~Connector fd = %d",sock_->GetFd());
   assert(!event_);
+  // FIXME 这个时候io_events_map应该没有这个fd
+  //  if (loop_->hasfd(sock_->GetFd())){
+  //    log_fatal("gg");
+  //  }
 }
 
 void Connector::OnConnect() {
@@ -26,19 +31,19 @@ void Connector::OnConnect() {
   log_trace("Connector::OnConnect");
   if (state_ == kConnecting) {
     // HINT 这时候连接不一定成功，但是我们任然要把poll中的event去掉
-    RemoveAndResetEvent();
+    int fd = RemoveAndResetEvent();
     // HINT 判断是否是真正连接成功
-    int err = sock_->GetPeerName(peer_);
+    int err = SockUtil::GetPeerName_(fd, peer_.GetAddress(), peer_.GetSize());
     if (err) {
       log_trace("Connector::OnConnect err");
       // 如果没有真正连接成功，那么一定后时间重连
-      Retry();
+      Retry(fd);
     } else {
       SetState(kConnected);
       if (connect_) {
-        on_connect_(sock_->GetFd());
+        on_connect_(fd);
       } else {
-        sock_->Close();
+        SockUtil::Close_(fd);
       }
     }
   } else {
@@ -46,10 +51,12 @@ void Connector::OnConnect() {
   }
 }
 void Connector::Connect() {
-  sock_ = std::make_unique<Socket>(
-      Socket::CreateNonBlockFd(peer_.GetFamily(), SOCK_STREAM, IPPROTO_TCP));
-
-  int ret = sock_->Connect(peer_);
+  int sockfd =
+      SockUtil::CreateNonBlockFd_(peer_.GetFamily(), SOCK_STREAM, IPPROTO_TCP);
+  log_fatal("Connector create fd = %d", sockfd);
+  //  sock_ = std::make_unique<Socket>(sockfd);
+  //  assert(retry_delay_ms_ == 500);
+  int ret = SockUtil::Connect_(sockfd, peer_.GetAddress(), peer_.GetSize());
   int saved_errno = (ret == 0) ? 0 : errno;
 
   // set connect timeout
@@ -63,7 +70,7 @@ void Connector::Connect() {
     case EINPROGRESS:
     case EINTR:
     case EISCONN:
-      Connecting();
+      Connecting(sockfd);
       break;
 
     case EAGAIN:
@@ -71,7 +78,9 @@ void Connector::Connect() {
     case EADDRNOTAVAIL:
     case ECONNREFUSED:
     case ENETUNREACH:
-      Retry();
+      Retry(sockfd);
+      log_fatal("Connector::Connect()");
+      assert(1 == 2);
       break;
 
     case EACCES:
@@ -81,14 +90,18 @@ void Connector::Connect() {
     case EBADF:
     case EFAULT:
     case ENOTSOCK:
+      log_fatal("Connector::Connect()");
+      assert(1 == 2);
       log_error("Connector::Connect error errno=%d", saved_errno);
-      sock_->Close();
+      SockUtil::Close_(sockfd);
       break;
 
     default:
+      log_fatal("Connector::Connect()");
       log_error("Connector::Connect Unexpected error errno=%d errmsg = %s",
                 errno, strerror(errno));
-      sock_->Close();
+      assert(1 == 2);
+      SockUtil::Close_(sockfd);
       // connectErrorCallback_();
       break;
   }
@@ -98,18 +111,22 @@ void Connector::Start() {
   assert(state_ == kDisconnected);
   Connect();
 }
-void Connector::Connecting() {
+void Connector::Connecting(int sock_fd) {
   SetState(kConnecting);
-  event_ = std::make_unique<IoEvent>(loop_, sock_->GetFd());
+  // event必需为空
+  assert(!event_);
+  event_ = std::make_unique<IoEvent>(loop_, sock_fd);
   event_->SetWriteCallback([this] { OnConnect(); });
   // 设置写事件，当连接的socket失败或者成功时会调用OnConnect回调
   event_->EnableWriting();
 }
-void Connector::Retry() {
+void Connector::Retry(int sock_fd) {
   //  event_
   log_trace("Connector::Retry");
   // 关闭当前的socket
-  sock_->Close();
+  //  sock_->Close_();
+  //  assert(1 == 2);
+  SockUtil::Close_(sock_fd);
   SetState(kDisconnected);
   // 一定时间后重新尝试连接
   if (connect_) {
@@ -124,14 +141,16 @@ void Connector::Stop() {
   connect_ = false;
   if (state_ == kConnecting) {
     SetState(kDisconnected);
-    RemoveAndResetEvent();
-    Retry();
+    int fd = RemoveAndResetEvent();
+    Retry(fd);
   }
 }
-void Connector::RemoveAndResetEvent() {
+int Connector::RemoveAndResetEvent() {
   event_->DisableAll();
   event_->UnRegister();
+  int fd = event_->GetFd();
   ResetEvent();
+  return fd;
 }
 void Connector::ResetEvent() { event_.reset(); }
 
@@ -158,7 +177,7 @@ void Connector::OnConnectTimeout() {
         "kConnecting and try to reconnected!",
         peer_.GetIpAndPort().c_str());
     SetState(kDisconnected);
-    RemoveAndResetEvent();
-    Retry();
+    int fd = RemoveAndResetEvent();
+    Retry(fd);
   }
 }

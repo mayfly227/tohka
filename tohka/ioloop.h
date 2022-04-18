@@ -9,9 +9,9 @@
 #include "iowatcher.h"
 #include "platform.h"
 #include "poll.h"
+#include "socket.h"
 #include "timepoint.h"
 #include "timermanager.h"
-
 namespace tohka {
 class IoLoop : public noncopyable {
  public:

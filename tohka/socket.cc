@@ -4,9 +4,11 @@
 
 #include "socket.h"
 
+#include "socketutil.h"
 #include "util/log.h"
 using namespace tohka;
 
+Socket::Socket() : fd_(-1) {}
 Socket::Socket(int domain, int type, int protocol) {
   int sock = ::socket(domain, type, protocol);
   if (sock < 0) {
@@ -19,37 +21,27 @@ Socket::Socket(int domain, int type, int protocol) {
 Socket::Socket(int fd) : fd_(fd) {}
 
 Socket::~Socket() {
-  // Close socket
-  log_debug("Socket::~Socket");
+  // Close_ socket
+  assert(fd_ != -1);
   Close();
+  log_debug("Socket::~Socket close socket fd = %d", fd_);
 }
 void Socket::BindAddress(NetAddress& address) const {
-  int ret = ::bind(fd_, address.GetAddress(), address.GetSize());
-  if (ret < 0) {
-    log_error("bind error! errno=%d errstr = %s", errno, strerror(errno));
-  }
+  SockUtil::BindAddress_(fd_, address.GetAddress(), address.GetSize());
 }
 
-void Socket::Listen() const {
-  int ret = ::listen(fd_, kBacklog);
-  if (ret < 0) {
-    log_error("listen error! errno=%d errstr = %s", errno, strerror(errno));
-  }
-}
+void Socket::Listen(int backlog) const { SockUtil::Listen_(fd_, backlog); }
 
 int Socket::Accept(NetAddress* peer_address) const {
   struct sockaddr_in6 socket_address6 {};
   ::memset(&socket_address6, 0, sizeof(socket_address6));
-  socklen_t sock_len = sizeof(socket_address6);
-
-  int conn_fd = ::accept(fd_, (sockaddr*)&socket_address6, &sock_len);
-  Socket::SetNonBlockAndCloseOnExec(conn_fd);
-  // TODO For debug only
-  //  int opt = 3;
-  //  if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
-  //                   (socklen_t)(sizeof(opt))) < 0) {
-  //    log_error("SocketFd SetSO_SNDBUF error");
-  //  }
+  int conn_fd = SockUtil::Accept_(fd_, &socket_address6);
+  //     TODO For debug only
+  //      int opt = 3;
+  //      if (::setsockopt(conn_fd, SOL_SOCKET, SO_SNDBUF, &opt,
+  //                       (socklen_t)(sizeof(opt))) < 0) {
+  //        log_error("SocketFd SetSO_SNDBUF error");
+  //      }
 
   if (conn_fd < 0) {
     log_error("[Socket::Accept]->accept error! errno=%d errstr = %s", errno,
@@ -61,7 +53,7 @@ int Socket::Accept(NetAddress* peer_address) const {
 
 int Socket::Connect(NetAddress& peer_address) const {
   socklen_t sock_len = peer_address.GetSize();
-  return ::connect(fd_, peer_address.GetAddress(), sock_len);
+  return SockUtil::Connect_(fd_, peer_address.GetAddress(), sock_len);
 }
 
 void Socket::SetTcpNoDelay(bool on) const {
@@ -102,45 +94,7 @@ ssize_t Socket::Read(void* buffer, size_t len) const {
 ssize_t Socket::Write(void* buffer, size_t len) const {
   return ::write(fd_, buffer, len);
 }
-
-void Socket::SetNonBlockAndCloseOnExec(int sock_fd) {
-  // non-block
-#ifdef OS_UNIX
-  int flags = ::fcntl(sock_fd, F_GETFL, 0);
-  flags |= O_NONBLOCK;
-  int ret = ::fcntl(sock_fd, F_SETFL, flags);
-  if (ret < 0) {
-    log_error("Socket::SetNonBlockAndCloseOnExec [non-block] error!");
-  }
-
-  // Close-on-exec
-  flags = ::fcntl(sock_fd, F_GETFD, 0);
-  flags |= FD_CLOEXEC;
-  ret = ::fcntl(sock_fd, F_SETFD, flags);
-  if (ret < 0) {
-    log_error("Socket::SetNonBlockAndCloseOnExec [Close-on-exec] error!");
-  }
-
-#elif OS_WIN
-  // TODO win32
-#endif
-}
-
-int Socket::CreateNonBlockFd(int domain, int type, int protocol) {
-  int sock = ::socket(domain, type, protocol);
-  if (sock < 0) {
-    log_error("create socket error! errno=%d errstr = %s", errno,
-              strerror(errno));
-  }
-  SetNonBlockAndCloseOnExec(sock);
-  return sock;
-}
-void Socket::Close() {
-  if (!closed) {
-    ::close(fd_);
-    closed = true;
-  }
-}
+void Socket::Close() const { SockUtil::Close_(fd_); }
 int Socket::GetSocketError() const {
   int opt_val;
   auto opt_len = static_cast<socklen_t>(sizeof opt_val);
@@ -151,25 +105,15 @@ int Socket::GetSocketError() const {
     return opt_val;
   }
 }
-void Socket::ShutDownWrite() const {
-  if (::shutdown(fd_, SHUT_WR) < 0) {
-    log_error("[Socket::ShutDownWrite]->shutdownWrite fd=%d", fd_);
-  }
-}
+void Socket::ShutDownWrite() const { SockUtil::ShutDownWrite_(fd_); }
 
 int Socket::GetPeerName(NetAddress& peer) const {
-  socklen_t len = peer.GetSize();
-  if (::getpeername(fd_, peer.GetAddress(), &len) < 0) {
-    log_error("[ Socket::GetPeerName] error fd = %d errmsg = %s", fd_,
-              strerror(errno));
-    return -1;
-  } else {
-    return 0;
-  }
+  socklen_t sock_len = peer.GetSize();
+  return SockUtil::GetPeerName_(fd_, peer.GetAddress(), sock_len);
 }
 
 #ifdef OS_UNIX
-ssize_t Socket::ReadV(const struct iovec* vec, int len) const {
-  return ::readv(fd_, vec, len);
+ssize_t Socket::ReadV(const struct iovec* vec, int vec_cnt) const {
+  return ::readv(fd_, vec, vec_cnt);
 }
 #endif

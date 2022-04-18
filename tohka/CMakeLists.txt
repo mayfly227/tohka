@@ -14,6 +14,7 @@ set(TOHKA_SRC
         timepoint.cc
         timer.cc
         timermanager.cc
+        socketutil.cc
         util/log.cc
         )
 
