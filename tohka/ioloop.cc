@@ -104,7 +104,7 @@ IoWatcher* IoLoop::GetWatcherRawPoint() { return io_watcher_.get(); }
 IoLoop* IoLoop::GetLoop() {
   if (!current_loop_thread) {
     static IoLoop loop;
-    log_info("create static loop");
+    log_info("using static loop at %p", &loop);
     current_loop_thread = &loop;
   }
   return current_loop_thread;

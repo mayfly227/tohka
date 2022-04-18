@@ -41,9 +41,9 @@ class IoBuf {
   size_t GetBufferSize() { return data_.size(); };
 
  private:
+  std::vector<char> data_;
   size_t read_index_;
   size_t write_index_;
-  std::vector<char> data_;
 };
 }  // namespace tohka
 #endif  // TOHKA_TOHKA_IOBUF_H

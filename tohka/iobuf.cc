@@ -7,10 +7,8 @@
 #include "util/log.h"
 using namespace tohka;
 
-IoBuf::IoBuf(size_t len) : data_(len) {
-  read_index_ = kPrependSize;
-  write_index_ = kPrependSize;
-}
+IoBuf::IoBuf(size_t len)
+    : data_(len), read_index_(kPrependSize), write_index_(kPrependSize) {}
 
 void IoBuf::Append(const char* data, size_t len) {
   // get writeable space
