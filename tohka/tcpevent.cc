@@ -66,7 +66,7 @@ void TcpEvent::HandleRead() {
     // call msg callback
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
-    log_trace("TcpEvent::HandleRead half Close_", socket_->GetFd());
+    log_trace("TcpEvent::HandleRead half close", socket_->GetFd());
     DoClose();
   } else {
     log_error("[TcpEvent::HandleRead]-> read < 0 errno=%d errmsg = %s", errno,
@@ -146,6 +146,8 @@ void TcpEvent::ConnectEstablished() {
   }
 }
 void TcpEvent::ConnectDestroyed() {
+  // HINT tcpclient
+
   // remove event from event map and  remove fd from pfds
   event_->UnRegister();
 }

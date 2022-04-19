@@ -69,7 +69,7 @@ IoLoop::IoLoop()
 
 void IoLoop::RunForever() {
   if (current_loop_thread != this) {
-    log_fatal("this thread has thread at %p", current_loop_thread);
+    log_fatal("This thread now have thread at %p", current_loop_thread);
     return;
   }
   running_ = true;

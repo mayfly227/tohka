@@ -21,17 +21,11 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
     for (const auto pfd : pfds_) {
       if (pfd.revents > 0) {
         auto it = io_events_map.find(pfd.fd);
-        if (it == io_events_map.end()) {
-          log_fatal("ffff");
-        }
         assert(io_events_map.size() == pfds_.size());
         assert(it != io_events_map.end());
         IoEvent* event = it->second;
-        if (pfd.fd != event->GetFd()) {
-          log_fatal("gggggg");
-        }
+   
         assert(pfd.fd == event->GetFd());
-        //  event->SetEvents(pfd.events);
 
         short what = pfd.revents;
         short res = 0;

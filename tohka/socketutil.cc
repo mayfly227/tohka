@@ -49,7 +49,7 @@ void SockUtil::Listen_(int fd, int backlog) {
 int SockUtil::Accept_(int fd, struct sockaddr_in6* addr) {
   socklen_t sock_len = sizeof(*addr);
 
-  int conn_fd = ::accept(fd, (sockaddr*)&addr, &sock_len);
+  int conn_fd = ::accept(fd, (sockaddr*)addr, &sock_len);
   SetNonBlockAndCloseOnExec_(conn_fd);
   if (conn_fd < 0) {
     log_error("[Accept]->accept error! errno=%d errstr = %s", errno,

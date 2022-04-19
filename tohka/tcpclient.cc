@@ -4,8 +4,6 @@
 
 #include "tcpclient.h"
 
-#include <cassert>
-
 #include "iobuf.h"
 #include "tcpevent.h"
 #include "util/log.h"
@@ -15,7 +13,7 @@ using namespace tohka;
 TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
     : loop_(loop),
       connector_(std::make_unique<Connector>(loop_, peer)),
-      retry_(false),
+      retry_(true),
       connect_(true),
       conn_id_(1),
       on_connection_(DefaultOnConnection),
@@ -27,44 +25,33 @@ TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
 }
 TcpClient::~TcpClient() {
   log_debug("[TcpClient::~TcpClient]");
-  TcpEventPrt_t conn;
-  bool unique;
-  unique = (connection_.use_count() == 1);
-  conn = connection_;
-  assert(connection_ == nullptr);
-  if (conn) {
-    //
-    assert(1 == 2);
-    conn->ConnectDestroyed();
-    if (unique) {
-      assert(1 == 2);
-      log_fatal("TcpClient::~TcpClient()");
-      conn->ForceClose();
-    }
+  // assert(connection_ == nullptr);
+  // 对方还没断开连接或者自己没有主动断开连接
+  // 这时需要清除掉io_events_map和对应的fd
+  if (connection_) {
+    // 直接暴力关掉
+    connection_->ForceClose();
+    log_trace("TcpClient::~TcpClient()");
   } else {
-    log_fatal("TcpClient::~TcpClient()");
+    log_trace("TcpClient::~TcpClient()");
     connector_->Stop();
   }
 }
 void TcpClient::Connect() {
   log_info("[TcpClient::connect]->try to Connect to %s",
            connector_->GetPeerAddress().GetIpAndPort().c_str());
-  connect_ = true;
   connector_->Start();
 }
 void TcpClient::Disconnect() {
-  connect_ = false;
-  // 连接端还未正式连接成功
+  // 连接端已经正式连接成功,这里我们需要关闭这个连接 释放内存
   if (connection_) {
-    //    assert(1==2);
-    log_fatal("TcpClient::Disconnect()");
+    log_info("TcpClient::Disconnect()");
     connection_->ShutDown();
+  } else {
+    log_warn("TcpClient::Disconnect no connection connected!");
   }
 }
-void TcpClient::Stop() {
-  connect_ = false;
-  connector_->Stop();
-}
+void TcpClient::Stop() { connector_->Stop(); }
 void TcpClient::OnConnect(int sock_fd) {
   auto name = connector_->GetPeerAddress().GetIpAndPort() + "#" +
               std::to_string(conn_id_);

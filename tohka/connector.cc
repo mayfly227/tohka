@@ -17,20 +17,13 @@ Connector::Connector(IoLoop* loop, const NetAddress& peer)
       connect_(false),
       enable_connect_timeout_(false),
       connect_timeout_ms_(kDefaultTimeoutMs) {}
-Connector::~Connector() {
-  //  log_trace("Connector::~Connector fd = %d",sock_->GetFd());
-  assert(!event_);
-  // FIXME 这个时候io_events_map应该没有这个fd
-  //  if (loop_->hasfd(sock_->GetFd())){
-  //    log_fatal("gg");
-  //  }
-}
+Connector::~Connector() { assert(!event_); }
 
 void Connector::OnConnect() {
   // call user callback
   log_trace("Connector::OnConnect");
   if (state_ == kConnecting) {
-    // HINT 这时候连接不一定成功，但是我们任然要把poll中的event去掉
+    // HINT 这时候连接不一定成功(可能发生错误),但是我们任然要把poll中的event去掉
     int fd = RemoveAndResetEvent();
     // HINT 判断是否是真正连接成功
     int err = SockUtil::GetPeerName_(fd, peer_.GetAddress(), peer_.GetSize());
@@ -53,9 +46,7 @@ void Connector::OnConnect() {
 void Connector::Connect() {
   int sockfd =
       SockUtil::CreateNonBlockFd_(peer_.GetFamily(), SOCK_STREAM, IPPROTO_TCP);
-  log_fatal("Connector create fd = %d", sockfd);
-  //  sock_ = std::make_unique<Socket>(sockfd);
-  //  assert(retry_delay_ms_ == 500);
+  log_trace("Connector create fd = %d", sockfd);
   int ret = SockUtil::Connect_(sockfd, peer_.GetAddress(), peer_.GetSize());
   int saved_errno = (ret == 0) ? 0 : errno;
 
@@ -79,8 +70,7 @@ void Connector::Connect() {
     case ECONNREFUSED:
     case ENETUNREACH:
       Retry(sockfd);
-      log_fatal("Connector::Connect()");
-      assert(1 == 2);
+      log_info("Connector::Connect() retry");
       break;
 
     case EACCES:
@@ -90,19 +80,14 @@ void Connector::Connect() {
     case EBADF:
     case EFAULT:
     case ENOTSOCK:
-      log_fatal("Connector::Connect()");
-      assert(1 == 2);
       log_error("Connector::Connect error errno=%d", saved_errno);
       SockUtil::Close_(sockfd);
       break;
 
     default:
-      log_fatal("Connector::Connect()");
       log_error("Connector::Connect Unexpected error errno=%d errmsg = %s",
                 errno, strerror(errno));
-      assert(1 == 2);
       SockUtil::Close_(sockfd);
-      // connectErrorCallback_();
       break;
   }
 }
@@ -124,8 +109,6 @@ void Connector::Retry(int sock_fd) {
   //  event_
   log_trace("Connector::Retry");
   // 关闭当前的socket
-  //  sock_->Close_();
-  //  assert(1 == 2);
   SockUtil::Close_(sock_fd);
   SetState(kDisconnected);
   // 一定时间后重新尝试连接
@@ -142,7 +125,7 @@ void Connector::Stop() {
   if (state_ == kConnecting) {
     SetState(kDisconnected);
     int fd = RemoveAndResetEvent();
-    Retry(fd);
+    SockUtil::Close_(fd);
   }
 }
 int Connector::RemoveAndResetEvent() {
@@ -154,10 +137,6 @@ int Connector::RemoveAndResetEvent() {
 }
 void Connector::ResetEvent() { event_.reset(); }
 
-void Connector::OnClose() {
-  log_trace("Connector::OnClose call stop");
-  Stop();
-}
 void Connector::Restart() {
   SetState(kDisconnected);
   connect_ = true;

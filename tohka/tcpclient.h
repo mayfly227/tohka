@@ -14,8 +14,11 @@ class TcpClient : noncopyable {
   TcpClient(IoLoop* loop, const NetAddress& peer, std::string name);
   ~TcpClient();
 
+  // 主动连接
   void Connect();
+  // 主动断开连接(已经连接好了)
   void Disconnect();
+  // 停止连接
   void Stop();
 
   void EnableConnectTimeout(bool on) { connector_->EnableConnectTimeout(on); };
