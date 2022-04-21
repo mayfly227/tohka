@@ -62,8 +62,6 @@ class Tunnel : public std::enable_shared_from_this<Tunnel> {
       serverConn_->StartReading();
       clientConn_ = conn;
       if (serverConn_->GetInputBuf()->GetReadableSize() > 0) {
-        assert(1==2);
-
         conn->Send(serverConn_->GetInputBuf());
       }
     } else {

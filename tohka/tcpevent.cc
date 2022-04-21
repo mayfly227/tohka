@@ -117,13 +117,7 @@ void TcpEvent::DoClose() {
   }
 }
 void TcpEvent::DoError() {
-  //  int err = socket_->GetSocketError();
-  //  //  if(err )
-  //  char buff[256]{};
-  //  strerror_r(err, buff, sizeof buff);
-  //  log_error("TcpEvent::DoError SO_ERROR=%d msg=%s fd=%d", err, buff,
-  //            socket_->GetFd());
-  // TODO only test
+  //TODO 增加更多的测试条件
   DoClose();
 }
 TcpEvent::~TcpEvent() {
@@ -232,3 +226,5 @@ void TcpEvent::TryEagerShutDown() {
     socket_->ShutDownWrite();
   }
 }
+
+void TcpEvent::SetTcpNoDelay() { socket_->SetTcpNoDelay(true); }

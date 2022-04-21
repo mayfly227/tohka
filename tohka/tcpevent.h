@@ -64,6 +64,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   IoBuf* GetInputBuf() { return &in_buf_; };
   IoBuf* GetOutputBuf() { return &out_buf_; };
 
+  void SetTcpNoDelay();
   /// Internal use only.
   void SetOnClose(const OnCloseCallback& on_close) { on_close_ = on_close; }
   // Be called when this connection establishing(call on accept)

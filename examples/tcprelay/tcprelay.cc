@@ -1,7 +1,6 @@
 //
 // Created by li on 2022/3/21.
 //
-#include <unistd.h>
 
 #include <iostream>
 #include <memory>
@@ -48,7 +47,6 @@ int main() {
   IoLoop* loop = IoLoop::GetLoop();
   NetAddress serverAddr("127.0.0.1", 8080);
   g_server_addr = &serverAddr;
-
   NetAddress listen_addr(2000);
   log_set_level(LOG_INFO);
   log_info("start at %s", listen_addr.GetIpAndPort().c_str());

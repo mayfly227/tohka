@@ -20,7 +20,7 @@ class Timer : noncopyable {
         interval_(interval),
         repeat_(interval > 0),
         timer_id_(auto_increment_id_.fetch_add(1)) {
-    log_debug("create timer if=%ld", timer_id_);
+    log_debug("create timer id=%ld", timer_id_);
   };
   void run() { timer_callback_(); }
 

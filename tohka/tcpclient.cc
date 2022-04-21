@@ -66,6 +66,7 @@ void TcpClient::OnConnect(int sock_fd) {
   new_conn->SetOnOnMessage(on_message_);
   new_conn->SetOnWriteDone(on_write_done_);
   // handle close
+  // 在连接关闭时清除掉pollfd和对应的ioevent
   new_conn->SetOnClose(
       std::bind(&TcpClient::RemoveConnection, this, std::placeholders::_1));
 
