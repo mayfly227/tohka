@@ -29,6 +29,8 @@ class IoBuf {
   void Retrieve(size_t len);
   void Refresh();
 
+  size_t Read(char* buffer,size_t in);
+
   size_t GetReadableSize() const { return write_index_ - read_index_; }
   size_t GetWriteableSize() { return data_.size() - write_index_; }
   size_t GetReadIndex() const { return read_index_; }

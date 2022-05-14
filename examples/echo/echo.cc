@@ -19,7 +19,7 @@ int main() {
   IoLoop* loop = IoLoop::GetLoop();
   NetAddress address(6666);
   log_info("server listen on:%s", address.GetIpAndPort().c_str());
-  TcpServer server(loop->GetWatcherRawPoint(), address);
+  TcpServer server(loop,address);
   server.SetOnConnection(OnConnection);
   server.SetOnMessage(OnMessage);
   server.Run();

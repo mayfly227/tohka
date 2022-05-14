@@ -16,7 +16,7 @@
 namespace tohka {
 class TcpServer : noncopyable {
  public:
-  TcpServer(IoLoop* loop, NetAddress& bind_address);
+  TcpServer(IoLoop* loop,NetAddress bind_address);
   ~TcpServer();
 
   void Run();

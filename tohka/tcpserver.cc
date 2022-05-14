@@ -5,7 +5,7 @@
 #include "tcpserver.h"
 
 using namespace tohka;
-TcpServer::TcpServer(IoLoop* loop, NetAddress& bind_address)
+TcpServer::TcpServer(IoLoop* loop,NetAddress bind_address)
     : loop_(loop),
       acceptor_(std::make_unique<Acceptor>(loop_, bind_address)),
       on_connection_(DefaultOnConnection),

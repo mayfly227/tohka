@@ -63,3 +63,11 @@ void IoBuf::Refresh() {
   read_index_ = kPrependSize;
   write_index_ = kPrependSize;
 }
+
+size_t IoBuf::Read(char* buffer, size_t in) {
+  size_t readable = GetReadableSize();
+  size_t read = in >= readable ? readable : in;
+  std::copy(Peek(), Peek() + read, buffer);
+  Retrieve(read);
+  return read;
+}
