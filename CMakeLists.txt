@@ -49,5 +49,5 @@ if (BUILD_TESTS)
     add_subdirectory(tests)
 endif ()
 
-add_executable(test test.cc)
-target_link_libraries(test tohka)
+#add_executable(test test.cc)
+#target_link_libraries(test tohka)
