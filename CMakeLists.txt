@@ -24,10 +24,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 include(utils)
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 
-configure_file(
-        "${PROJECT_SOURCE_DIR}/config.h.in"
-        "${PROJECT_SOURCE_DIR}/config.h"
-)
+#configure_file(
+#        "${PROJECT_SOURCE_DIR}/config.h.in"
+#        "${PROJECT_SOURCE_DIR}/config.h"
+#)
 
 message(STATUS "CXX_FLAGS = " ${CMAKE_CXX_FLAGS} " " ${CMAKE_CXX_FLAGS_${BUILD_TYPE}})
 message(${PROJECT_SOURCE_DIR})
