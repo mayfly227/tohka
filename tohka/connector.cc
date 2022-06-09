@@ -11,13 +11,20 @@ using namespace tohka;
 
 Connector::Connector(IoLoop* loop, const NetAddress& peer)
     : loop_(loop),
+      timer_id_(),
       retry_delay_ms_(kInitDelayMs),
       peer_(peer),
       state_(kDisconnected),
       connect_(false),
       enable_connect_timeout_(false),
       connect_timeout_ms_(kDefaultTimeoutMs) {}
-Connector::~Connector() { assert(!event_); }
+Connector::~Connector() {
+  // 关闭定时器
+  if (timer_id_.GetId() != 0) {
+    IoLoop::GetLoop()->DeleteTimer(timer_id_);
+  }
+  assert(!event_);
+}
 
 void Connector::OnConnect() {
   // call user callback
@@ -113,7 +120,8 @@ void Connector::Retry(int sock_fd) {
   SetState(kDisconnected);
   // 一定时间后重新尝试连接
   if (connect_) {
-    IoLoop::GetLoop()->CallLater(retry_delay_ms_, [this] { Start(); });
+    timer_id_ =
+        IoLoop::GetLoop()->CallLater(retry_delay_ms_, [this] { Start(); });
     retry_delay_ms_ = std::min(retry_delay_ms_ * 2, kMaxDelayMs);
   } else {
     log_debug("[Connector::Retry]->do not reconnect");
@@ -126,6 +134,10 @@ void Connector::Stop() {
     SetState(kDisconnected);
     int fd = RemoveAndResetEvent();
     SockUtil::Close_(fd);
+  }
+  // 关闭定时器
+  if (timer_id_.GetId() != 0) {
+    IoLoop::GetLoop()->DeleteTimer(timer_id_);
   }
 }
 int Connector::RemoveAndResetEvent() {

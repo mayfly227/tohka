@@ -71,3 +71,11 @@ size_t IoBuf::Read(char* buffer, size_t in) {
   Retrieve(read);
   return read;
 }
+size_t IoBuf::Read(void* buffer, size_t in) {
+  char* data = static_cast<char*>(buffer);
+  size_t readable = GetReadableSize();
+  size_t read = in >= readable ? readable : in;
+  std::copy(Peek(), Peek() + read, data);
+  Retrieve(read);
+  return read;
+}

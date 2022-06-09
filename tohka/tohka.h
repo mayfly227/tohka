@@ -28,6 +28,7 @@ using ExpiredTimers = std::vector<TimerPrt_t>;
 // callback
 using EventCallback = std::function<void()>;
 using TimerCallback = std::function<void()>;
+using NormalCallback = std::function<void()>;
 
 // for acceptor
 using OnAcceptCallback =

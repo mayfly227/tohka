@@ -18,7 +18,7 @@ NetAddress::NetAddress(uint16_t port, bool ipv6) {
   }
 };
 
-NetAddress::NetAddress(const std::string& ip, int16_t port, bool ipv6)
+NetAddress::NetAddress(const std::string& ip, uint16_t port, bool ipv6)
     : NetAddress(port, ipv6) {
   if (ipv6) {
     ::inet_pton(AF_INET6, ip.c_str(), &in6_.sin6_addr);

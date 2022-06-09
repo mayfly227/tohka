@@ -56,7 +56,8 @@ int64_t TimerManager::GetNextExpiredDuration() {
 void TimerManager::DeleteTimer(const TimerId& timer_id) {
   TimerPrt_t timer = timer_id.timer_.lock();
   if (!timer) {
-    log_fatal("not valid timer id=%d", timer->GetTimerId());
+    log_fatal("not valid timer id=%d", timer_id.sequence_);
+    return;
   }
   auto it = activate_timers_.find(timer_id.sequence_);
   if (it != activate_timers_.end()) {

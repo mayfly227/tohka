@@ -15,6 +15,11 @@ Poll::Poll() { pfds_.reserve(kInitialSize); }
 
 TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
   // 调用poll 并构造活动的事件
+  //  log_info("poll has %d events",pfds_.size());
+  //  for (const auto& item : pfds_){
+  //    log_info("fd = %d events=%d
+  //    revents=%d",item.fd,item.events,item.revents);
+  //  }
   int active_events = poll(pfds_.data(), pfds_.size(), timeout);
   if (active_events > 0) {
     log_trace("Poll::PollEvents %d events happened", active_events);
@@ -24,7 +29,7 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
         assert(io_events_map.size() == pfds_.size());
         assert(it != io_events_map.end());
         IoEvent* event = it->second;
-   
+
         assert(pfd.fd == event->GetFd());
 
         short what = pfd.revents;

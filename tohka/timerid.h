@@ -18,6 +18,9 @@ class TimerId {
 
   friend class TimerManager;
 
+  int64_t GetId() const { return sequence_; }
+  std::weak_ptr<Timer> GetTimer() { return timer_.lock(); }
+
  private:
   std::weak_ptr<Timer> timer_;
   int64_t sequence_;

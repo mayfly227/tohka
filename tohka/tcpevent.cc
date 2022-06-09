@@ -54,7 +54,7 @@ void TcpEvent::HandleRead() {
     }
   }
 
-#elif defined(OS_UNIX1)
+#elif defined(OS_UNIX_TEST)
   char ext_buf[65535];
   n = socket_->Read(ext_buf, 65535);  // read from fd
   if (n > 0) {
@@ -77,8 +77,7 @@ void TcpEvent::HandleRead() {
 void TcpEvent::HandleWrite() {
   log_trace("TcpEvent::HandleWrite");
   if (event_->IsWriting()) {
-    ssize_t n =
-        socket_->Write((char*)out_buf_.Peek(), out_buf_.GetReadableSize());
+    ssize_t n = socket_->Write(out_buf_.Peek(), out_buf_.GetReadableSize());
     log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
     if (n >= 0) {
       out_buf_.Retrieve(n);
@@ -117,7 +116,7 @@ void TcpEvent::DoClose() {
   }
 }
 void TcpEvent::DoError() {
-  //TODO 增加更多的测试条件
+  // TODO 增加更多的测试条件
   DoClose();
 }
 TcpEvent::~TcpEvent() {
@@ -146,7 +145,8 @@ void TcpEvent::ConnectDestroyed() {
   event_->UnRegister();
 }
 void TcpEvent::Send(std::string_view msg) { Send(msg.data(), msg.size()); }
-void TcpEvent::Send(const char* data, size_t len) {
+void TcpEvent::Send(const void* data_dummy, size_t len) {
+  char* data = (char*)data_dummy;
   // for force close
   if (state_ == kDisconnecting) {
     log_warn("Disconnecting, give up writing");
@@ -163,7 +163,7 @@ void TcpEvent::Send(const char* data, size_t len) {
   // it should not be sent directly, but the data is added to the buffer.
   if (!event_->IsWriting() && out_buf_.GetReadableSize() == 0) {
     // FIXME test
-    n = socket_->Write((char*)data, len);
+    n = socket_->Write(data, len);
     if (n >= 0) {
       // may be not write done
       remaining -= n;

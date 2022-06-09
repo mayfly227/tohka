@@ -26,7 +26,7 @@ class TcpClient : noncopyable {
   void SetConnectTimeout(int connect_timeout_ms) {
     connector_->SetConnectTimeout(connect_timeout_ms);
   }
-
+  void SetOnTimeOut(NormalCallback cb) { normal_callback_ = std::move(cb); }
   void SetOnConnection(OnConnectionCallback cb) {
     on_connection_ = std::move(cb);
   }
@@ -40,6 +40,7 @@ class TcpClient : noncopyable {
 
  private:
   void OnConnect(int sock_fd);
+  void OnTimeOut();
   void RemoveConnection(const TcpEventPrt_t& conn);
   IoLoop* loop_;
   // 持有连接器的共享指针
@@ -49,6 +50,7 @@ class TcpClient : noncopyable {
   bool retry_;
   bool connect_;
   int64_t conn_id_;
+  NormalCallback normal_callback_;
   OnConnectionCallback on_connection_;
   OnMessageCallback on_message_;
   OnWriteDoneCallback on_write_done_;

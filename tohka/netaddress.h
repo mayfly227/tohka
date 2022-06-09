@@ -12,7 +12,7 @@ class NetAddress {
  public:
   NetAddress() = default;
   explicit NetAddress(uint16_t port, bool ipv6 = false);
-  NetAddress(const std::string& ip, int16_t port, bool ipv6 = false);
+  NetAddress(const std::string& ip, uint16_t port, bool ipv6 = false);
 
   sa_family_t GetFamily() const;
   std::string GetIp() const;

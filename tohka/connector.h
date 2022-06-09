@@ -7,8 +7,8 @@
 
 #include "ioevent.h"
 #include "socket.h"
+#include "timerid.h"
 #include "tohka.h"
-
 namespace tohka {
 class Connector {
  public:
@@ -42,11 +42,11 @@ class Connector {
 
   void OnConnectTimeout();
   void SetState(State s) { state_ = s; };
-
   static constexpr int kInitDelayMs = 500;
   static constexpr int kMaxDelayMs = 30 * 1000;
   static constexpr int kDefaultTimeoutMs = 8000;
   IoLoop* loop_;
+  TimerId timer_id_;
   int retry_delay_ms_;
   std::unique_ptr<IoEvent> event_;
   NetAddress peer_;

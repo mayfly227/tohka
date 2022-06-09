@@ -91,7 +91,7 @@ void Socket::SetKeepAlive(bool on) const {
 ssize_t Socket::Read(void* buffer, size_t len) const {
   return ::read(fd_, buffer, len);
 }
-ssize_t Socket::Write(void* buffer, size_t len) const {
+ssize_t Socket::Write(const void* buffer, size_t len) const {
   return ::write(fd_, buffer, len);
 }
 void Socket::Close() const { SockUtil::Close_(fd_); }

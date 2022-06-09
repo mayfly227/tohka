@@ -26,7 +26,7 @@ class Socket : noncopyable {
   void ShutDownWrite() const;
   void Close() const;
   ssize_t Read(void* buffer, size_t len) const;
-  ssize_t Write(void* buffer, size_t len) const;
+  ssize_t Write(const void* buffer, size_t len) const;
 #ifdef OS_UNIX
   ssize_t ReadV(const struct iovec* vec, int vec_cnt) const;
 #endif
