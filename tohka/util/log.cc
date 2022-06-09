@@ -119,12 +119,11 @@ static void init_event(log_Event* ev, void* udata) {
 }
 
 void log_log(int level, const char* file, int line, const char* fmt, ...) {
-  log_Event ev = {
-      .fmt = fmt,
-      .file = file,
-      .line = line,
-      .level = level,
-  };
+  log_Event ev;
+  ev.fmt = fmt;
+  ev.file = file;
+  ev.line = line;
+  ev.level = level;
 
   lock();
 
