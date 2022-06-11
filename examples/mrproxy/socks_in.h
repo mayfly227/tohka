@@ -7,20 +7,15 @@
 #include <map>
 
 #include "context.h"
-#include "freedom.h"
+#include "point.h"
 #include "tohka/tcpclient.h"
 #include "tohka/tcpserver.h"
+
 using namespace tohka;
 
-// class SocksFactory : public InConnFactory {
-//  public:
-//   InHandler* Create(Point* point) override;
-//   static void Init();
-// };
-
-class socks_in : public InHandler {
+class SocksIn : public InHandler {
  public:
-  socks_in();
+  explicit SocksIn(const json& j);
   void StartServer() override;
   void Process(const ContextPtr_t& ctx) override;
 

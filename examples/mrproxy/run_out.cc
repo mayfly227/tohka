@@ -1,20 +1,18 @@
 //
-// Created by li on 2022/4/22.
+// Created by li on 2022/5/30.
 //
 
-#include "freedom.h"
+#include "run_out.h"
 
 #include "tohka/ioloop.h"
 
-void FreeDom::on_connection(const TcpEventPrt_t& conn) {
+void RunOut::on_connection(const TcpEventPrt_t& conn) {
   if (conn->Connected()) {
     assert(ctx_);
-    log_warn("FreeDom connected");
+    log_warn("run_out connected");
     conn->SetTcpNoDelay();
     // 注册conn到ctx中
     ctx_->out = conn;
-    //    ctx_->out_handler = shared_from_this();
-
     if (ctx_->in) {
       // in结点开启读事件
       ctx_->in->StartReading();
@@ -23,30 +21,29 @@ void FreeDom::on_connection(const TcpEventPrt_t& conn) {
       }
     }
   } else {
-    log_warn("FreeDom disconnected");
+    log_warn("run_out disconnected");
     client_->SetOnConnection(DefaultOnConnection);
     client_->SetOnMessage(DefaultOnMessage);
     // 关闭in结点
-    // BUG
     // 释放ctx资源,因为ctx持有当前对象的共享指针
     if (ctx_) {
       if (ctx_->in) {
+        log_warn("ctx -> in shutdown");
+        //TODO in没有发送完的数据应该发送完了再关闭
         ctx_->in->ShutDown();
       }
-      log_warn("FreeDom on DisConnected reset ctx");
+      log_warn("被动断开:run_out on DisConnected reset ctx");
       ctx_.reset();
     }
   }
 }
-void FreeDom::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
+void RunOut::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
   // HINT 调用in结点来处理数据
-  if (!ctx_) {
-    log_fatal("FreeDom::on_recv");
-  }
+  // TODO 这里应该对数据进行解密
   assert(ctx_);
   ctx_->in_handler->Process(ctx_);
 }
-void FreeDom::StartClient() {
+void RunOut::StartClient() {
   auto self(shared_from_this());
 
   // 如果连不上就让client一直连，直到in结点主动关闭
@@ -58,19 +55,33 @@ void FreeDom::StartClient() {
   client_->Connect();
 }
 
-void FreeDom::Process(const ContextPtr_t& ctx) {
+void RunOut::Process(const ContextPtr_t& ctx) {
   // 表示in结点已经收到了数据
   // 数据交给本类处理
-  // BUG ctx还在？
-  if (!ctx_) {
-    log_fatal("no ctx");
-  }
-  assert(ctx);
-//  assert(ctx_);
-//  assert(ctx_->in == ctx->in);
-//  assert(ctx_->out == ctx->out);
+  //FIXME ctx_可能被释放了
+  // assert(ctx_->in == ctx->in);
+  // assert(ctx_->out == ctx->out);
   if (ctx->in && ctx->out) {
     IoBuf* buf_in = ctx->in->GetInputBuf();
+
+    if (state_ == kPrePareHeader) {
+      // 构造请求头
+      unsigned char header[10];
+      header[0] = 0x01;
+      header[1] = 0x01;
+
+      log_info("run out get ip %s", ctx->addr.GetIp().c_str());
+      inet_pton(AF_INET, ctx->addr.GetIp().c_str(), header + 2);
+
+      uint16_t port = ctx->addr.GetPort();
+      header[6] = port >> 8;
+      header[7] = port & 0xff;
+      header[8] = '\r';
+      header[9] = '\n';
+      buf_in->Prepend(header, 10);
+      state_ = kTransfer;
+    }
+    assert(state_ == kTransfer);
     ctx->out->Send(buf_in);
   } else {
     log_warn("in is release dont send");
@@ -78,17 +89,21 @@ void FreeDom::Process(const ContextPtr_t& ctx) {
   }
 }
 
-FreeDom::FreeDom(const ContextPtr_t& ctx) {
+RunOut::RunOut(const ContextPtr_t& ctx, const json& j) {
   ctx_ = ctx;
-  NetAddress addr = ctx->addr;
+  // 这个addr应该是确定的，连接下一个节点
+  std::string address = j["address"];
+  unsigned short port = j["port"];
+
+  NetAddress addr{address,port};
   client_ = std::make_unique<TcpClient>(IoLoop::GetLoop(), addr, "None");
 }
-void FreeDom::DisConnected() {
+void RunOut::DisConnected() {
   if (ctx_) {
-    // 如果没有连接上，那么就释放ctx,以释放FreeDom的内存
+    // 如果没有连接上，那么就释放ctx,以释放run_out的内存
     if (!ctx_->out) {
       ctx_.reset();
-      log_warn("DisConnected reset ctx");
+      log_warn("主动断开:DisConnected and reset ctx");
       client_->SetOnConnection(DefaultOnConnection);
       client_->SetOnMessage(DefaultOnMessage);
       client_->Stop();
@@ -97,4 +112,4 @@ void FreeDom::DisConnected() {
     }
   }
 }
-FreeDom::~FreeDom() { log_debug("~FreeDom"); }
+RunOut::~RunOut() { log_info("~run_out"); }

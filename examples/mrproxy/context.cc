@@ -4,5 +4,3 @@
 
 #include "context.h"
 
-map<string, InConnFactory*> inFactories;
-map<string, OutConnFactory*> outFactories;

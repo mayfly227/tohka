@@ -1,16 +1,10 @@
-
-
 add_executable(mrproxy
         main.cc
-        #        socks5.cc
         freedom.cc
         socks_in.cc
         context.cc
-        #        context.h
-        run_in.cpp
-        #        run_in.h
-        run_out.cpp
-        #        run_out.h
+        run_in.cc
+        run_out.cc
+        point.cc
         )
-
 target_link_libraries(mrproxy tohka)

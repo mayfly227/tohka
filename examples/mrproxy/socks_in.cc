@@ -3,17 +3,20 @@
 //
 
 #include "socks_in.h"
-
+#include "point.h"
 #include "netdb.h"
 #include "tohka/ioloop.h"
-socks_in::socks_in() {
-  server_ = make_unique<TcpServer>(IoLoop::GetLoop(), NetAddress(7777));
+SocksIn::SocksIn(const json& j) {
+  std::string listen_addr = j["listen"];
+  int port = j["port"];
+  server_ = make_unique<TcpServer>(IoLoop::GetLoop(), NetAddress(listen_addr,port));
+  log_info("listen on %s:%d",listen_addr.c_str(),port);
   server_->SetOnConnection(
       [this](const TcpEventPrt_t& conn) { on_connection(conn); });
   server_->SetOnMessage(
       [this](const TcpEventPrt_t& conn, IoBuf* buf) { on_recv(conn, buf); });
 }
-void socks_in::on_connection(const TcpEventPrt_t& conn) {
+void SocksIn::on_connection(const TcpEventPrt_t& conn) {
   if (conn->Connected()) {
     // 创建上下文
     auto ctx = std::make_shared<Context>();
@@ -40,7 +43,7 @@ void socks_in::on_connection(const TcpEventPrt_t& conn) {
     ctx_map_.erase(conn->GetName());
   }
 }
-void socks_in::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
+void SocksIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
   State state_ = std::any_cast<State>(conn->GetContext());
   if (state_ == kClientAuth) {
     char buffer[16];
@@ -110,24 +113,19 @@ void socks_in::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
     // conn->StopReading();
     auto ctx = ctx_map_[conn->GetName()];
     // 注入地址
-    // TODO only debug
     ctx->addr = NetAddress(ip, port);
     // ctx->addr = NetAddress("8.8.8.8", 443);
     // ctx->addr = NetAddress("127.0.0.1", 6666);
     //     ctx->addr = NetAddress("127.0.0.1", 6667);
     //     ctx->addr = NetAddress("220.181.38.149", 80);
-    // TODO 根据配置创建不同的对象
-    auto out_handler = make_shared<FreeDom>(ctx);
+    // 根据配置创建不同的对象
+    auto out_handler = OutCreate(ctx);
     ctx->out_handler = out_handler;
 
     out_handler->StartClient();
 
     conn->SetContext(kTransfer);
   } else if (state_ == kTransfer) {
-    // TODO 加密的数据 主动消费数据
-    // TODO 调用out结点来处理数据(out连接必需创建成功)
-    // TODO 这个时候应该注入一些相关的上下文信息（）
-
     assert(ctx_map_.find(conn->GetName()) != ctx_map_.end());
     auto& ctx = ctx_map_[conn->GetName()];
     assert(ctx->out_handler);
@@ -138,12 +136,13 @@ void socks_in::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
     }
   }
 }
-void socks_in::StartServer() {
+void SocksIn::StartServer() {
   server_->Run();
+  log_info("listen at 7777");
   IoLoop::GetLoop()->RunForever();
 }
 // 脱离对象存在的方法，但是可以使用本类对象的数据
-void socks_in::Process(const ContextPtr_t& ctx) {
+void SocksIn::Process(const ContextPtr_t& ctx) {
   // 表示out结点已经收到了数据，但是处理过程要交给本类处理
   // TODO 数据dump到一个地方
   // 获取out结点的数据
