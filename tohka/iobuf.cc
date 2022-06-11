@@ -79,3 +79,8 @@ size_t IoBuf::Read(void* buffer, size_t in) {
   Retrieve(read);
   return read;
 }
+const char* IoBuf::FindCRLF() {
+  // FIXME: replace with memmem()?
+  const char* crlf = std::search(Peek(), BeginWrite(), kCRLF, kCRLF + 2);
+  return crlf == BeginWrite() ? nullptr : crlf;
+}
