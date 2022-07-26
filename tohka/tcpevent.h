@@ -46,6 +46,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void Send(std::string_view msg);
   void Send(const void* data, size_t len);
   void Send(IoBuf* buffer);
+  void Send(IoBuf& buffer);
 
   void ShutDown();
   void ForceClose();

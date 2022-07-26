@@ -206,6 +206,10 @@ void TcpEvent::Send(IoBuf* buffer) {
   Send(buffer->Peek(), buffer->GetReadableSize());
   buffer->Refresh();
 }
+void TcpEvent::Send(IoBuf& buffer) {
+  Send(buffer.Peek(), buffer.GetReadableSize());
+  buffer.Refresh();
+}
 void TcpEvent::ShutDown() {
   if (state_ == kConnected) {
     SetState(kDisconnecting);

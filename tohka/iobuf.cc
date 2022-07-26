@@ -84,3 +84,8 @@ const char* IoBuf::FindCRLF() {
   const char* crlf = std::search(Peek(), BeginWrite(), kCRLF, kCRLF + 2);
   return crlf == BeginWrite() ? nullptr : crlf;
 }
+void IoBuf::Swap(IoBuf& other) {
+  data_.swap(other.data_);
+  std::swap(read_index_, other.read_index_);
+  std::swap(write_index_, other.write_index_);
+}

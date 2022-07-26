@@ -21,6 +21,7 @@ class IoBuf {
   void Append(const char* data, size_t len);
   void Append(const void* data, size_t len);
 
+  void Swap(IoBuf& other);
   std::string ReceiveAllAsString();
 
   // Get the first pointer of readable data
