@@ -20,29 +20,26 @@ RunIn::RunIn(const json& j) {
 }
 void RunIn::on_connection(const TcpEventPrt_t& conn) {
   if (conn->Connected()) {
-    // 创建上下文
-    auto ctx = std::make_shared<Context>();
-    ctx->in = conn;
-    ctx->in_handler = this;
-
     auto name = conn->GetName();
-    ctx_map_.emplace(name, ctx);
-
+    in_conn_map_.emplace(name, conn);
+    out_conn_map_.emplace(name, nullptr);
     conn->SetContext(kClientAuth);
-    log_info("ctx_map_ size = %d", ctx_map_.size());
   } else {
-    // TODO 这里也需要关闭out结点的conn
     log_info("%s close", conn->GetName().c_str());
-    assert(ctx_map_.find(conn->GetName()) != ctx_map_.end());
-    auto ctx = ctx_map_[conn->GetName()];
-    if (ctx->out_handler) {
-      log_info("ctx->out DisConnected");
-      // 释放out_handler的内存
-      ctx_map_[conn->GetName()]->out_handler->DisConnected();
+    auto it = out_conn_map_.find(conn->GetName());
+    auto it1 = in_conn_map_.find(conn->GetName());
+    assert(it != out_conn_map_.end());
+    assert(it1 != in_conn_map_.end());
+
+    if (it != out_conn_map_.end()) {
+      if (it->second) {
+        it->second->DisConnected();
+      }
+      out_conn_map_.erase(it);
     }
-    //  out_handler的生命周期和context一样长
-    // BUG 还有其它对象持有context对象(也就是FreeDom)
-    ctx_map_.erase(conn->GetName());
+    if (it1 != in_conn_map_.end()) {
+      in_conn_map_.erase(it1);
+    }
   }
 }
 void RunIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
@@ -91,13 +88,14 @@ void RunIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
         uint16_t port = ((uint16_t)buffer[len - 2]) << 8 | buffer[len - 1];
         assert(port > 0);
         log_info("runin get ip = %s port = %d", ip, port);
-        auto ctx = ctx_map_[conn->GetName()];
-        ctx->addr = NetAddress(ip, port);
 
         // 根据配置创建不同的对象
-        auto out_handler = OutCreate(ctx);
-        ctx->out_handler = out_handler;
-
+        NetAddress addr{ip, port};
+        string id = conn->GetName();
+        auto out_handler = OutCreate(id, conn, addr, this);
+        assert(out_conn_map_.find(id) != out_conn_map_.end());
+        assert(out_conn_map_[id] == nullptr);
+        out_conn_map_[id] = out_handler;
         out_handler->StartClient();
 
         conn->SetContext(kTransfer);
@@ -114,14 +112,9 @@ void RunIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
     }
 
   } else if (state_ == kTransfer) {
-    assert(ctx_map_.find(conn->GetName()) != ctx_map_.end());
-    auto& ctx = ctx_map_[conn->GetName()];
-    assert(ctx->out_handler);
-    if (ctx->out) {
-      ctx->out_handler->Process(ctx);
-    } else {
-      log_warn("run out no out save data to buffer fd = %d", conn->GetFd());
-    }
+    assert(out_conn_map_.find(conn->GetName()) != out_conn_map_.end());
+    auto& out_handler = out_conn_map_[conn->GetName()];
+    out_handler->Process();
   }
   // 连接目标地址
 }
@@ -130,18 +123,20 @@ void RunIn::StartServer() {
   IoLoop::GetLoop()->RunForever();
 }
 // 脱离对象存在的方法，但是可以使用本类对象的数据
-void RunIn::Process(const ContextPtr_t& ctx) {
+void RunIn::Process(string id) {
   // 表示out结点已经收到了数据，但是处理过程要交给本类处理
-  // TODO 数据dump到一个地方
-  // 获取out结点的数据
-  assert(ctx->out);
-  if (ctx->out) {
-    IoBuf* buf_in = ctx->out->GetInputBuf();
-    assert(ctx->in);
-    ctx->in->Send(buf_in);
-  } else {
-    log_warn("out is release dont not send");
-    exit(-2);
+  // 获取in/out结点的conn
+  // get in conn
+  // TODO why?
+  if (in_conn_map_.find(id) == in_conn_map_.end()) {
+    // log_fatal("no in conn~");
+    return;
   }
-}
+  assert(in_conn_map_.find(id) != in_conn_map_.end());
+  // get out conn
+  auto in_conn = in_conn_map_[id];
+  // BUG？ 这个时候还没有创建out handler? 必定被创建了
+  auto out_conn = out_conn_map_[id]->GetConn();
 
+  in_conn->Send(out_conn->GetInputBuf());
+}

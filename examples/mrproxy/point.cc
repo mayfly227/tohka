@@ -11,13 +11,14 @@ using namespace nlohmann;
 using namespace std;
 extern json global_json;
 
-OutHandlerPrt_t OutCreate(const ContextPtr_t& ctx) {
+OutHandlerPrt_t OutCreate(const string& id, const TcpEventPrt_t& other,
+                          NetAddress dest, InHandler* in) {
   const auto& out_conf = global_json["out"];
   if (out_conf["protocol"] == "run") {
-    return make_shared<RunOut>(ctx, out_conf);
+    return make_shared<RunOut>(id, other, dest, in, out_conf);
   }
   if (out_conf["protocol"] == "freedom") {
-    return make_shared<FreeDom>(ctx);
+    return make_shared<FreeDom>(id, other, dest, in);
   }
   return nullptr;
 }

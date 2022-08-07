@@ -3,14 +3,16 @@
 //
 
 #include "socks_in.h"
-#include "point.h"
+
 #include "netdb.h"
+#include "point.h"
 #include "tohka/ioloop.h"
 SocksIn::SocksIn(const json& j) {
   std::string listen_addr = j["listen"];
   int port = j["port"];
-  server_ = make_unique<TcpServer>(IoLoop::GetLoop(), NetAddress(listen_addr,port));
-  log_info("listen on %s:%d",listen_addr.c_str(),port);
+  server_ =
+      make_unique<TcpServer>(IoLoop::GetLoop(), NetAddress(listen_addr, port));
+  log_info("listen on %s:%d", listen_addr.c_str(), port);
   server_->SetOnConnection(
       [this](const TcpEventPrt_t& conn) { on_connection(conn); });
   server_->SetOnMessage(
@@ -18,29 +20,31 @@ SocksIn::SocksIn(const json& j) {
 }
 void SocksIn::on_connection(const TcpEventPrt_t& conn) {
   if (conn->Connected()) {
-    // 创建上下文
-    auto ctx = std::make_shared<Context>();
-    ctx->in = conn;
-    ctx->in_handler = this;
-
     auto name = conn->GetName();
-    ctx_map_.emplace(name, ctx);
+    in_conn_map_.emplace(name, conn);
+    out_conn_map_.emplace(name, nullptr);
 
     conn->SetContext(kClientAuth);
-    log_info("ctx_map_ size = %d", ctx_map_.size());
   } else {
-    // TODO 这里也需要关闭out结点的conn
     log_info("%s close", conn->GetName().c_str());
-    assert(ctx_map_.find(conn->GetName()) != ctx_map_.end());
-    auto ctx = ctx_map_[conn->GetName()];
-    if (ctx->out_handler) {
-      log_info("ctx->out DisConnected");
-      // 释放out_handler的内存
-      ctx_map_[conn->GetName()]->out_handler->DisConnected();
+    auto it = out_conn_map_.find(conn->GetName());
+    auto it1 = in_conn_map_.find(conn->GetName());
+    assert(it != out_conn_map_.end());
+    assert(it1 != in_conn_map_.end());
+
+    if (it != out_conn_map_.end()) {
+      if (it->second) {
+        it->second->DisConnected();
+      }
+      log_info("erase out conn name=%s ref=%d", it->first.c_str(),
+               it->second.use_count());
+      out_conn_map_.erase(it);
     }
-    //  out_handler的生命周期和context一样长
-    // BUG 还有其它对象持有context对象(也就是FreeDom)
-    ctx_map_.erase(conn->GetName());
+    if (it1 != in_conn_map_.end()) {
+      log_info("erase in conn name=%s ref=%d", it1->first.c_str(),
+               it1->second.use_count());
+      in_conn_map_.erase(it1);
+    }
   }
 }
 void SocksIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
@@ -89,6 +93,11 @@ void SocksIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
           memcpy(domain, buffer + 5, domain_size);
           // TODO async dns
           auto host = gethostbyname(domain);
+          if (!host) {
+            log_warn("parse dns error!");
+            conn->ShutDown();
+            return;
+          }
           client.sin_family = AF_INET;
           assert(host->h_addrtype == AF_INET);
           memcpy(&client.sin_addr.s_addr, host->h_addr_list[0], host->h_length);
@@ -111,29 +120,27 @@ void SocksIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
     conn->Send(resp, 10);
 
     // conn->StopReading();
-    auto ctx = ctx_map_[conn->GetName()];
-    // 注入地址
-    ctx->addr = NetAddress(ip, port);
     // ctx->addr = NetAddress("8.8.8.8", 443);
     // ctx->addr = NetAddress("127.0.0.1", 6666);
-    //     ctx->addr = NetAddress("127.0.0.1", 6667);
-    //     ctx->addr = NetAddress("220.181.38.149", 80);
+    // ctx->addr = NetAddress("220.181.38.149", 80);
     // 根据配置创建不同的对象
-    auto out_handler = OutCreate(ctx);
-    ctx->out_handler = out_handler;
+    NetAddress addr{ip, port};
+    string id = conn->GetName();
+    auto out_handler = OutCreate(id, conn, addr, this);
+    assert(out_conn_map_.find(id) != out_conn_map_.end());
+    assert(out_conn_map_[id] == nullptr);
+    out_conn_map_[id] = out_handler;
 
     out_handler->StartClient();
 
     conn->SetContext(kTransfer);
   } else if (state_ == kTransfer) {
-    assert(ctx_map_.find(conn->GetName()) != ctx_map_.end());
-    auto& ctx = ctx_map_[conn->GetName()];
-    assert(ctx->out_handler);
-    if (ctx->out) {
-      ctx->out_handler->Process(ctx);
-    } else {
-      log_warn("no out save data to buffer fd = %d", conn->GetFd());
-    }
+    assert(out_conn_map_.find(conn->GetName()) != out_conn_map_.end());
+
+    auto& out_handler = out_conn_map_[conn->GetName()];
+    assert(out_handler != nullptr);
+    // TODO 连接是否成功？
+    out_handler->Process();
   }
 }
 void SocksIn::StartServer() {
@@ -142,20 +149,18 @@ void SocksIn::StartServer() {
   IoLoop::GetLoop()->RunForever();
 }
 // 脱离对象存在的方法，但是可以使用本类对象的数据
-void SocksIn::Process(const ContextPtr_t& ctx) {
+void SocksIn::Process(string id) {
   // 表示out结点已经收到了数据，但是处理过程要交给本类处理
-  // TODO 数据dump到一个地方
-  // 获取out结点的数据
-  assert(ctx->out);
-  if (ctx->out) {
-    IoBuf* buf_in = ctx->out->GetInputBuf();
-    assert(ctx->in);
-    ctx->in->Send(buf_in);
-  } else {
-    exit(-2);
-    log_warn("out is release dont not send");
+  // 获取in/out结点的conn
+  // get in conn 会hit assert？
+  // TODO why?
+  if (in_conn_map_.find(id) == in_conn_map_.end()) {
+    log_fatal("no in conn~");
+    return;
   }
+  // get out conn
+  auto in_conn = in_conn_map_[id];
+  auto out_conn = out_conn_map_[id]->GetConn();
+  assert(out_conn);
+  in_conn->Send(out_conn->GetInputBuf());
 }
-
-// InHandler* SocksFactory::Create(Point* point) { return new socks_in(); }
-// void SocksFactory::Init() { RegIn("socks", new SocksFactory()); }

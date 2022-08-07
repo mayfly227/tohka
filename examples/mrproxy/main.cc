@@ -6,6 +6,7 @@
 
 #include "point.h"
 #include "tohka/ioloop.h"
+#include "unistd.h"
 using namespace tohka;
 using namespace std;
 namespace fs = filesystem;
@@ -17,8 +18,11 @@ int main(int argc, char* argv[]) {
     printf("usage: mrproxy yourconfig.json\n");
     return 0;
   }
-
+  char buf[128];
+  getcwd(buf, 128);
+  printf("current %s\n", buf);
   string name = string(argv[1]);
+  fprintf(stdout, "loading config file %s\n", name.c_str());
   fs::path p(name);
   if (fs::exists(p)) {
     std::ifstream i(name);
