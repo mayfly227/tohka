@@ -16,8 +16,7 @@ using namespace nlohmann;
 class RunOut : public OutHandler, public enable_shared_from_this<RunOut> {
  public:
   // 在初始化的时候就应该提供足够量的信息
-  RunOut(string id, TcpEventPrt_t other, NetAddress dest, InHandler* in,
-         const json& j);
+  RunOut(string id, NetAddress dest, InHandler* in, const json& j);
   ~RunOut() override;
 
   void StartClient() override;
@@ -32,7 +31,7 @@ class RunOut : public OutHandler, public enable_shared_from_this<RunOut> {
   using ClientPrt_t = std::unique_ptr<TcpClient>;
   ClientPrt_t client_;
   TcpEventPrt_t self_;
-  TcpEventPrt_t other_;
+  //   TcpEventPrt_t other_;
 
   NetAddress dest_;
   string id_;

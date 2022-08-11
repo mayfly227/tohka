@@ -19,6 +19,13 @@ class RunIn : public InHandler {
   void StartServer() override;
   void Process(string id) override;
 
+  std::optional<TcpEventPrt_t> GetInConn(const std::string& id) override {
+    if (in_conn_map_.count(id) == 1) {
+      return {in_conn_map_[id]};
+    }
+    return {};
+  }
+
  private:
   void on_connection(const TcpEventPrt_t& conn);
   void on_recv(const TcpEventPrt_t& conn, IoBuf* buf);

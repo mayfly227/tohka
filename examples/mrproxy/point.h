@@ -9,8 +9,7 @@
 using namespace nlohmann;
 using namespace std;
 
-OutHandlerPrt_t OutCreate(const string& id, const TcpEventPrt_t& other,
-                          NetAddress name, InHandler* in);
+OutHandlerPrt_t OutCreate(const string& id, NetAddress dest, InHandler* in);
 vector<InHandlerPrt_t> InCreate();
 
 #endif

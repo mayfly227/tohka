@@ -92,7 +92,7 @@ void RunIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
         // 根据配置创建不同的对象
         NetAddress addr{ip, port};
         string id = conn->GetName();
-        auto out_handler = OutCreate(id, conn, addr, this);
+        auto out_handler = OutCreate(id, addr, this);
         assert(out_conn_map_.find(id) != out_conn_map_.end());
         assert(out_conn_map_[id] == nullptr);
         out_conn_map_[id] = out_handler;
@@ -114,6 +114,7 @@ void RunIn::on_recv(const TcpEventPrt_t& conn, IoBuf* buf) {
   } else if (state_ == kTransfer) {
     assert(out_conn_map_.find(conn->GetName()) != out_conn_map_.end());
     auto& out_handler = out_conn_map_[conn->GetName()];
+
     out_handler->Process();
   }
   // 连接目标地址

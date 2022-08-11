@@ -12,7 +12,7 @@ using namespace tohka;
 class FreeDom : public OutHandler, public enable_shared_from_this<FreeDom> {
  public:
   // 在初始化的时候就应该提供足够量的信息
-  FreeDom(string id, TcpEventPrt_t other, NetAddress dest, InHandler* in);
+  FreeDom(string id, NetAddress dest, InHandler* in);
   ~FreeDom() override;
   void StartClient() override;
   void Process() override;
@@ -26,7 +26,7 @@ class FreeDom : public OutHandler, public enable_shared_from_this<FreeDom> {
 
   ClientPrt_t client_;
   TcpEventPrt_t self_;
-  TcpEventPrt_t other_;
+  // TcpEventPrt_t other_;
 
   InHandler* in_;
   NetAddress dest_{};
