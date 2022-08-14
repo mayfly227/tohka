@@ -6,6 +6,7 @@
 #define TOHKA_EXAMPLES_MRPROXY_CONTEXT_H
 
 #include <map>
+#include <optional>
 
 #include "tohka/iobuf.h"
 #include "tohka/tcpevent.h"

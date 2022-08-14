@@ -5,15 +5,15 @@
 #include "tcpserver.h"
 
 using namespace tohka;
-TcpServer::TcpServer(IoLoop* loop,NetAddress bind_address)
+TcpServer::TcpServer(IoLoop* loop, NetAddress bind_address)
     : loop_(loop),
       acceptor_(std::make_unique<Acceptor>(loop_, bind_address)),
       on_connection_(DefaultOnConnection),
       on_message_(DefaultOnMessage),
       conn_id_(1) {
-  acceptor_->SetOnAccept(std::bind(&TcpServer::OnAccept, this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
+  acceptor_->SetOnAccept([this](int conn_fd, NetAddress& peer_address) {
+    OnAccept(conn_fd, peer_address);
+  });
 }
 TcpServer::~TcpServer() {
   for (const auto& item : connection_map_) {
@@ -36,9 +36,7 @@ void TcpServer::OnAccept(int conn_fd, NetAddress& peer_address) {
   new_conn->SetOnConnection(on_connection_);
   new_conn->SetOnOnMessage(on_message_);
   new_conn->SetOnWriteDone(on_write_done_);
-  new_conn->SetOnClose(
-      std::bind(&TcpServer::OnClose, this, std::placeholders::_1));
-
+  new_conn->SetOnClose([this](const TcpEventPrt_t& conn) { OnClose(conn); });
   // call ConnectEstablished
   new_conn->ConnectEstablished();
 }

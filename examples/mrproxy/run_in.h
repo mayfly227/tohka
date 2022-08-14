@@ -6,6 +6,7 @@
 #define TOHKA_EXAMPLES_MRPROXY_RUN_IN_H
 
 #include <map>
+#include <optional>
 
 #include "context.h"
 #include "point.h"

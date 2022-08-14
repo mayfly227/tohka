@@ -52,7 +52,7 @@ class IoBuf {
   {
     assert(Peek() <= end);
     assert(end <= BeginWrite());
-    auto can_read_len = end - Peek();
+    size_t can_read_len = end - Peek();
     assert(len > can_read_len);
     return Read(dst,can_read_len);
   }

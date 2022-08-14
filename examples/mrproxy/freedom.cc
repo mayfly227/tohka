@@ -13,7 +13,6 @@ void FreeDom::on_connection(const TcpEventPrt_t& conn) {
     log_warn("FreeDom connected");
     conn->SetTcpNoDelay();
     self_ = conn;
-
     if (in_->GetInConn(id_).has_value()) {
       auto other = in_->GetInConn(id_).value();
       // in结点开启读事件
@@ -74,7 +73,8 @@ void FreeDom::Process() {
 
 void FreeDom::DisConnected() {
   if (self_) {
-    client_->Disconnect();
+    //    client_->Disconnect();
+    self_->ForceClose();
   } else {
     client_->SetOnConnection(DefaultOnConnection);
     client_->SetOnMessage(DefaultOnMessage);

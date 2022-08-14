@@ -100,8 +100,10 @@ RunOut::RunOut(string id, NetAddress dest, InHandler* in, const json& j)
   client_ = std::make_unique<TcpClient>(IoLoop::GetLoop(), addr, "run_out");
 }
 void RunOut::DisConnected() {
+  log_info("call disconnected");
   if (self_) {
-    client_->Disconnect();
+    //    client_->Disconnect();
+    self_->ForceClose();
   } else {
     client_->SetOnConnection(DefaultOnConnection);
     client_->SetOnMessage(DefaultOnMessage);
