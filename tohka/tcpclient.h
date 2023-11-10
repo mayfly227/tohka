@@ -9,6 +9,7 @@
 #include "tcpevent.h"
 #include "tohka.h"
 namespace tohka {
+
 class TcpClient : noncopyable {
  public:
   TcpClient(IoLoop* loop, const NetAddress& peer, std::string name);
@@ -21,12 +22,6 @@ class TcpClient : noncopyable {
   // 停止连接
   void Stop();
 
-  void EnableConnectTimeout(bool on) { connector_->EnableConnectTimeout(on); };
-
-  void SetConnectTimeout(int connect_timeout_ms) {
-    connector_->SetConnectTimeout(connect_timeout_ms);
-  }
-  void SetOnTimeOut(NormalCallback cb) { normal_callback_ = std::move(cb); }
   void SetOnConnection(OnConnectionCallback cb) {
     on_connection_ = std::move(cb);
   }
@@ -38,10 +33,10 @@ class TcpClient : noncopyable {
 
   bool IsRetry() const { return retry_; }
 
+  void RemoveConnection(const TcpEventPrt_t& conn);
+
  private:
   void OnConnect(int sock_fd);
-  void OnTimeOut();
-  void RemoveConnection(const TcpEventPrt_t& conn);
   IoLoop* loop_;
   // 持有连接器的共享指针
   using ConnectorPrt_t = std::unique_ptr<Connector>;

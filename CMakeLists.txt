@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 project(tohka)
 
@@ -40,7 +40,7 @@ check_function("getpid" "unistd.h")
 
 include_directories(${PROJECT_SOURCE_DIR})
 add_subdirectory(tohka)
-
+add_subdirectory(tests)
 if (BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif ()

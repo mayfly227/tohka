@@ -13,8 +13,7 @@ namespace tohka {
 class IoEvent : noncopyable {
  public:
   IoEvent(IoLoop* loop, int fd);
-  ~IoEvent() { log_debug("~IoEvent at %p fd = %d", this, fd_); }
-
+  ~IoEvent();
   // Register to the monitor event of Poll
   void Register();
 
@@ -39,7 +38,7 @@ class IoEvent : noncopyable {
     events_ &= ~EV_WRITE;
     Register();
   };
-  void DisableAll() {
+  void DisableAllEvent() {
     events_ = EV_NONE;
     Register();
   };
@@ -50,7 +49,7 @@ class IoEvent : noncopyable {
     write_callback_ = std::move(write_callback);
   }
 
-  // HINT: 延长ioevent的生命周期
+  // HINT: 延长ioevent或其owner的生命周期
   void Tie(const std::shared_ptr<void>& tie);
   short GetEvents() const { return events_; }
   void SetEvents(short events) { events_ = events; }
@@ -68,6 +67,7 @@ class IoEvent : noncopyable {
   int fd_;
   short events_;
   short revents_;
+  bool event_handling_;
   void SafeExecuteEvent();
   std::weak_ptr<void> tie_obj_;
   bool tied_;

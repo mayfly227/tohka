@@ -6,6 +6,7 @@
 #define TOHKA_TOHKA_TCPSERVER_H
 
 #include "acceptor.h"
+#include "ioloop.h"
 #include "iowatcher.h"
 #include "noncopyable.h"
 #include "tcpevent.h"

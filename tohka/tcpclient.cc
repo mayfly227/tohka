@@ -10,6 +10,12 @@
 #include "util/log.h"
 using namespace tohka;
 
+void RemoveConnectionOut(const TcpEventPrt_t& conn) {
+  log_info("[TcpClient::removeConnection]->remove connection from %s fd = %d",
+           conn->GetPeerIpAndPort().c_str(), conn->GetFd());
+  conn->ConnectDestroyed();
+}
+
 TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
     : loop_(loop),
       connector_(std::make_unique<Connector>(loop_, peer)),
@@ -23,19 +29,18 @@ TcpClient::TcpClient(IoLoop* loop, const NetAddress& peer, std::string name)
   connector_->SetOnConnect([this](int sock_fd) { OnConnect(sock_fd); });
 }
 TcpClient::~TcpClient() {
-  log_debug("[TcpClient::~TcpClient]");
-  // assert(connection_ == nullptr);
-  // 对方还没断开连接或者自己没有主动断开连接
+  // TODO fixme TcpClient生命周期比TcpConn短
+  log_info("[TcpClient::~TcpClient]");
   // 这时需要清除掉io_events_map和对应的fd
+  // 三种状态 1:连接未建立 2:连接已建立 3:当析构时用户还持有conn
   if (connection_) {
-    // 直接暴力关掉
-    //    assert(connection_.use_count() == 1);
+    connection_->SetOnClose(
+        [](const TcpEventPrt_t& conn) { RemoveConnectionOut(conn); });
     if (connection_.use_count() == 1) {
       connection_->ForceClose();
+      log_info("force close");
     }
-    log_trace("TcpClient::~TcpClient()");
   } else {
-    log_trace("TcpClient::~TcpClient()");
     connector_->Stop();
   }
 }
@@ -43,10 +48,6 @@ void TcpClient::Connect() {
   log_info("[TcpClient::connect]->try to Connect to %s",
            connector_->GetPeerAddress().GetIpAndPort().c_str());
   connector_->Start();
-  if (normal_callback_) {
-    // Hint 这个时候有可能TcpClient被析构了
-    IoLoop::GetLoop()->CallLater(5000, [this] { OnTimeOut(); });
-  }
 }
 void TcpClient::Disconnect() {
   // 连接端已经正式连接成功,这里我们需要关闭这个连接 释放内存
@@ -80,22 +81,13 @@ void TcpClient::OnConnect(int sock_fd) {
   connection_ = new_conn;
   new_conn->ConnectEstablished();
 }
-void TcpClient::OnTimeOut() {
-  // 如果没有连接成功的话，那么调用
-  if (!connection_) {
-    normal_callback_();
-  }
-}
 void TcpClient::RemoveConnection(const TcpEventPrt_t& conn) {
   log_info("[TcpClient::removeConnection]->remove connection from %s fd = %d",
            connector_->GetPeerAddress().GetIpAndPort().c_str(), conn->GetFd());
   assert(connection_ == conn);
   connection_.reset();
+  log_info("connect use count = %d", conn.use_count());
   // remove from pollfd
+  // FIXME should run in next poll event?
   conn->ConnectDestroyed();
-  //  if (retry_ && connect_) {
-  //    log_info("[TcpClient::removeConnection]->try to reconnecting to %s",
-  //             connector_->GetPeerAddress().GetIpAndPort().c_str());
-  //    connector_->Restart();
-  //  }
 }

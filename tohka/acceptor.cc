@@ -52,7 +52,7 @@ void Acceptor::OnAccept() {
   }
 }
 Acceptor::~Acceptor() {
-  event_.DisableAll();
+  event_.DisableAllEvent();
   event_.UnRegister();
 #if defined(OS_UNIX)
   SockUtil::Close_(idle_fd_);

@@ -23,7 +23,7 @@ class TcpEvent : noncopyable, public std::enable_shared_from_this<TcpEvent> {
   void StartWriting() { event_->EnableWriting(); }
   void StopReading() { event_->DisableReading(); }
   void StopWriting() { event_->DisableWriting(); }
-  void StopAll() { event_->DisableAll(); }
+  void StopAllEvent() { event_->DisableAllEvent(); }
 
   void SetOnConnection(const OnConnectionCallback& on_connection) {
     on_connection_ = on_connection;

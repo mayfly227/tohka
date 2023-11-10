@@ -15,27 +15,25 @@ Connector::Connector(IoLoop* loop, const NetAddress& peer)
       retry_delay_ms_(kInitDelayMs),
       peer_(peer),
       state_(kDisconnected),
-      connect_(false),
-      enable_connect_timeout_(false),
-      connect_timeout_ms_(kDefaultTimeoutMs) {}
+      connect_(false) {}
 Connector::~Connector() {
   // 关闭定时器
   if (timer_id_.GetId() != 0) {
     IoLoop::GetLoop()->DeleteTimer(timer_id_);
   }
+  log_info("connector delete");
   assert(!event_);
 }
 
 void Connector::OnConnect() {
   // call user callback
-  log_trace("Connector::OnConnect");
   if (state_ == kConnecting) {
     // HINT 这时候连接不一定成功(可能发生错误),但是我们任然要把poll中的event去掉
     int fd = RemoveAndResetEvent();
     // HINT 判断是否是真正连接成功
     int err = SockUtil::GetPeerName_(fd, peer_.GetAddress(), peer_.GetSize());
-    if (err) {
-      log_trace("Connector::OnConnect err");
+    if (err == -1) {
+      log_error("Connector::OnConnect err");
       // 如果没有真正连接成功，那么一定后时间重连
       Retry(fd);
     } else {
@@ -50,19 +48,14 @@ void Connector::OnConnect() {
     assert(state_ == kDisconnected);
   }
 }
+void Connector::OnConnectError() {}
 void Connector::Connect() {
   int sockfd =
       SockUtil::CreateNonBlockFd_(peer_.GetFamily(), SOCK_STREAM, IPPROTO_TCP);
-  log_trace("Connector create fd = %d", sockfd);
   int ret = SockUtil::Connect_(sockfd, peer_.GetAddress(), peer_.GetSize());
   int saved_errno = (ret == 0) ? 0 : errno;
 
-  // set connect timeout
-  if (enable_connect_timeout_) {
-    IoLoop::GetLoop()->CallLater(connect_timeout_ms_,
-                                 [this] { OnConnectTimeout(); });
-  }
-  log_trace("errno = %d errmsg = %s", errno, strerror(errno));
+  log_info("errno = %d errmsg = %s", errno, strerror(errno));
   switch (saved_errno) {
     case 0:
     case EINPROGRESS:
@@ -110,11 +103,12 @@ void Connector::Connecting(int sock_fd) {
   event_ = std::make_unique<IoEvent>(loop_, sock_fd);
   event_->SetWriteCallback([this] { OnConnect(); });
   // 设置写事件，当连接的socket失败或者成功时会调用OnConnect回调
+  event_->SetReadCallback([this] { OnConnect(); });
   event_->EnableWriting();
+  event_->EnableReading();
 }
 void Connector::Retry(int sock_fd) {
   //  event_
-  log_trace("Connector::Retry");
   // 关闭当前的socket
   SockUtil::Close_(sock_fd);
   SetState(kDisconnected);
@@ -124,7 +118,7 @@ void Connector::Retry(int sock_fd) {
         IoLoop::GetLoop()->CallLater(retry_delay_ms_, [this] { Start(); });
     retry_delay_ms_ = std::min(retry_delay_ms_ * 2, kMaxDelayMs);
   } else {
-    log_debug("[Connector::Retry]->do not reconnect");
+    log_warn("[Connector::Retry]->do not reconnect");
   }
 }
 
@@ -135,16 +129,20 @@ void Connector::Stop() {
     int fd = RemoveAndResetEvent();
     SockUtil::Close_(fd);
   }
+  assert(event_ == nullptr);
   // 关闭定时器
   if (timer_id_.GetId() != 0) {
     IoLoop::GetLoop()->DeleteTimer(timer_id_);
   }
 }
 int Connector::RemoveAndResetEvent() {
-  event_->DisableAll();
+  event_->DisableAllEvent();
   event_->UnRegister();
   int fd = event_->GetFd();
-  ResetEvent();
+  // FIXME  Can't reset channel_ here, because we are inside
+  // Ioevent::SafeExecuteEvent
+  IoLoop::GetLoop()->CallLater(0, [this] { ResetEvent(); });
+
   return fd;
 }
 void Connector::ResetEvent() { event_.reset(); }
@@ -154,21 +152,4 @@ void Connector::Restart() {
   connect_ = true;
   retry_delay_ms_ = kInitDelayMs;
   Start();
-}
-
-void Connector::OnConnectTimeout() {
-  log_warn("[ConnectTimeout]->connect");
-  if (state_ == kConnected) {
-    log_debug("[ConnectTimeout]->connect %s ok! status=kConnected",
-              peer_.GetIpAndPort().c_str());
-  }
-  if (state_ == kConnecting || state_ == kDisconnected) {
-    log_debug(
-        "[Connector::OnConnectTimeout]-> connect %s timeout now status= "
-        "kConnecting and try to reconnected!",
-        peer_.GetIpAndPort().c_str());
-    SetState(kDisconnected);
-    int fd = RemoveAndResetEvent();
-    Retry(fd);
-  }
 }

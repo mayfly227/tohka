@@ -17,6 +17,7 @@ TcpServer::TcpServer(IoLoop* loop, NetAddress bind_address)
 }
 TcpServer::~TcpServer() {
   for (const auto& item : connection_map_) {
+    //    item.second.;
     item.second->ConnectDestroyed();
   }
 }
@@ -48,11 +49,15 @@ void TcpServer::OnClose(const TcpEventPrt_t& conn) {
   auto name = conn->GetName();
   int fd = conn->GetFd();
   // remove from conn map
-  // HINT: 这个时候conn指针还有可能还被用户持有
+  // FIXME: 这个时候conn指针还有可能还被用户持有
   auto status = connection_map_.erase(name);
   assert(status == 1);
   log_info("[TcpServer::OnClose]->remove connection from %s fd = %d",
            name.c_str(), fd);
-  conn->ConnectDestroyed();
+  log_info("[TcpServer::OnClose] conn ref=%d", conn.use_count());
+  // FIXME 引起tcpconn析构
+  IoLoop::GetLoop()->CallLater(0, [conn] { conn->ConnectDestroyed(); });
+  //  conn->ConnectDestroyed();
+  log_info("[TcpServer::OnClose] conn ref=%d", conn.use_count());
 }
 void TcpServer::Run() { acceptor_->Listen(); }

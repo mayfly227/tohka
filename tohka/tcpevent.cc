@@ -8,8 +8,6 @@
 using namespace tohka;
 
 void tohka::DefaultOnConnection(const TcpEventPrt_t& conn) {
-  log_trace("connection status = %s",
-            conn->Connected() == true ? "up" : "down");
 }
 
 void tohka::DefaultOnMessage(const TcpEventPrt_t& conn, IoBuf* buf) {
@@ -24,14 +22,15 @@ TcpEvent::TcpEvent(IoLoop* loop, std::string name, int fd, NetAddress& peer)
       name_(std::move(name)),
       state_(kConnecting),
       high_water_mark_(64 * 1024 * 1024) {
+  log_info("tcp event create fd=%d addr=%p name = %s", fd, this, name_.c_str());
   socket_->SetKeepAlive(true);
+  socket_->SetTcpNoDelay(true);
 
   event_->SetReadCallback([this] { HandleRead(); });
   event_->SetWriteCallback([this] { HandleWrite(); });
 }
 
 void TcpEvent::HandleRead() {
-  log_trace("TcpEvent::HandleRead fd = %d", socket_->GetFd());
   // TODO debug only(set read ext_buf size=1)
   ssize_t n;
 #if defined(OS_UNIX)
@@ -66,7 +65,6 @@ void TcpEvent::HandleRead() {
     // call msg callback
     on_message_(shared_from_this(), &in_buf_);
   } else if (n == 0) {
-    log_trace("TcpEvent::HandleRead half close", socket_->GetFd());
     DoClose();
   } else {
     log_error("[TcpEvent::HandleRead]-> read < 0 errno=%d errmsg = %s", errno,
@@ -75,17 +73,13 @@ void TcpEvent::HandleRead() {
   }
 }
 void TcpEvent::HandleWrite() {
-  log_trace("TcpEvent::HandleWrite");
   if (event_->IsWriting()) {
     ssize_t n = socket_->Write(out_buf_.Peek(), out_buf_.GetReadableSize());
-    log_trace("write %d bytes to socket fd %d", n, socket_->GetFd());
     if (n >= 0) {
       out_buf_.Retrieve(n);
       // Once the data is written, Close_ the write event immediately to avoid
       // busy loop
       if (out_buf_.GetReadableSize() == 0) {
-        log_trace(
-            "[TcpEvent::HandleWrite]->write done and try to stop writing");
         StopWriting();
         if (on_write_done_) {
           on_write_done_(shared_from_this());
@@ -104,23 +98,20 @@ void TcpEvent::HandleWrite() {
 void TcpEvent::DoClose() {
   assert(state_ == kConnected || state_ == kDisconnecting);
   SetState(kDisconnected);
-  StopAll();
+  StopAllEvent();
   // call user callback
+
   on_connection_(shared_from_this());
-  // TODO 这里调用了conn->ConnectDestroyed()用户的连接
-  // call tcpserver callback
-  // 目的是为了清除tcp连接
-  if (on_close_) {
-    //  close_callback();
-    on_close_(shared_from_this());
-  }
+  // TODO 这里调用了conn->ConnectDestroyed()用户的连接,目的是为了清除tcp连接
+  on_close_(shared_from_this());
 }
 void TcpEvent::DoError() {
   // TODO 增加更多的测试条件
   DoClose();
 }
 TcpEvent::~TcpEvent() {
-  log_debug("TcpEvent::~TcpEvent");
+  log_info("tcp event delete fd=%d addr=%p name = %s", this->socket_->GetFd(),
+           this, name_.c_str());
   assert(state_ == kDisconnected);
 }
 
@@ -140,7 +131,13 @@ void TcpEvent::ConnectEstablished() {
 }
 void TcpEvent::ConnectDestroyed() {
   // HINT tcpclient
-
+  assert(state_ == kDisconnected);
+  if (state_ == kConnected) {
+    SetState(kDisconnected);
+    event_->DisableAllEvent();
+    on_connection_(shared_from_this());
+  }
+  assert(state_ == kDisconnected);
   // remove event from event map and  remove fd from pfds
   event_->UnRegister();
 }
@@ -188,7 +185,6 @@ void TcpEvent::Send(const void* data_dummy, size_t len) {
   if (remaining > 0) {
     // Judging whether the current cache data has exceeded the high watermark
     size_t exist = out_buf_.GetReadableSize();
-    log_debug("remain =%d exist = %d", high_water_mark_, remaining, exist);
     // FIXME why
     if (exist + remaining >= high_water_mark_) {
       // if(exist + remaining >= high_water_mark_ && exist < high_water_mark_){
@@ -198,7 +194,6 @@ void TcpEvent::Send(const void* data_dummy, size_t len) {
     }
     // append remaining data to buffer
     out_buf_.Append(data + n, remaining);
-    log_trace("[TcpEvent::Send]->no more buffer,so enable writing...");
     StartWriting();
   }
 }

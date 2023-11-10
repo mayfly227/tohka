@@ -23,27 +23,21 @@ class Connector {
   void Restart();
   void Stop();
 
-  // internal use only
-  void EnableConnectTimeout(bool on) { enable_connect_timeout_ = on; };
-  // internal use only
-  void SetConnectTimeout(int connect_timeout_ms) {
-    connect_timeout_ms_ = connect_timeout_ms;
-  }
   NetAddress& GetPeerAddress() { return peer_; }
 
  private:
   enum State { kDisconnected, kConnecting, kConnected };
   void OnConnect();
+  void OnConnectError();
   void Connect();
   void Connecting(int sock_fd);
   void Retry(int sock_fd);
   int RemoveAndResetEvent();
   void ResetEvent();
 
-  void OnConnectTimeout();
   void SetState(State s) { state_ = s; };
   static constexpr int kInitDelayMs = 500;
-  static constexpr int kMaxDelayMs = 30 * 1000;
+  static constexpr int kMaxDelayMs = 10 * 1000;
   static constexpr int kDefaultTimeoutMs = 8000;
   IoLoop* loop_;
   TimerId timer_id_;
@@ -52,8 +46,6 @@ class Connector {
   NetAddress peer_;
   State state_;
   bool connect_;
-  bool enable_connect_timeout_;
-  int connect_timeout_ms_;
   OnConnectCallback on_connect_;
 };
 }  // namespace tohka

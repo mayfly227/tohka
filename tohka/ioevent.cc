@@ -11,7 +11,13 @@
 using namespace tohka;
 
 IoEvent::IoEvent(IoLoop* loop, int fd)
-    : loop_(loop), fd_(fd), events_(0), revents_(0), tied_(false), index_(-1) {}
+    : loop_(loop),
+      fd_(fd),
+      events_(0),
+      revents_(0),
+      event_handling_(false),
+      tied_(false),
+      index_(-1) {}
 
 void IoEvent::ExecuteEvent() {
   std::shared_ptr<void> guard;
@@ -35,8 +41,7 @@ void IoEvent::Tie(const std::shared_ptr<void>& tie) {
   tied_ = true;
 }
 void IoEvent::SafeExecuteEvent() {
-  log_trace("fd = %d IoEvent::ExecuteEvent() events=0x%x revents=0x%x", fd_,
-            events_, revents_);
+  event_handling_ = true;
   if ((events_ & EV_READ) && (revents_ & EV_READ)) {
     if (read_callback_) {
       read_callback_();
@@ -47,4 +52,9 @@ void IoEvent::SafeExecuteEvent() {
       write_callback_();
     }
   }
+  event_handling_ = false;
+}
+IoEvent::~IoEvent() {
+  { log_debug("~IoEvent at %p fd = %d", this, fd_); }
+  assert(!event_handling_);
 }

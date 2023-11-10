@@ -24,7 +24,6 @@ Socket::~Socket() {
   // Close_ socket
   assert(fd_ != -1);
   Close();
-  log_debug("Socket::~Socket close socket fd = %d", fd_);
 }
 void Socket::BindAddress(NetAddress& address) const {
   SockUtil::BindAddress_(fd_, address.GetAddress(), address.GetSize());

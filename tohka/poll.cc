@@ -15,14 +15,8 @@ Poll::Poll() { pfds_.reserve(kInitialSize); }
 
 TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
   // 调用poll 并构造活动的事件
-  //  log_info("poll has %d events",pfds_.size());
-  //  for (const auto& item : pfds_){
-  //    log_info("fd = %d events=%d
-  //    revents=%d",item.fd,item.events,item.revents);
-  //  }
   int active_events = poll(pfds_.data(), pfds_.size(), timeout);
   if (active_events > 0) {
-    log_trace("Poll::PollEvents %d events happened", active_events);
     for (const auto pfd : pfds_) {
       if (pfd.revents > 0) {
         auto it = io_events_map.find(pfd.fd);
@@ -33,12 +27,32 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
         assert(pfd.fd == event->GetFd());
 
         short what = pfd.revents;
-        short res = 0;
-        //        ReventsToString(what);
-        if (what & (POLLHUP | POLLERR | POLLNVAL)) {
-          what |= POLLIN | POLLOUT;
-        }
-        if (what & POLLIN) {
+        short res = what;
+
+        ReventsToString(what);
+        //        {
+        //          std::string info = "[";
+        //          if (what & POLLIN) {
+        //            info += "POLLIN|";
+        //          }
+        //          if (what & POLLOUT) {
+        //            info += "POLLOUT|";
+        //          }
+        //          if (what & POLLHUP) {
+        //            info += "POLLHUP|";
+        //          }
+        //          if (what & POLLERR) {
+        //            info += "POLLERR|";
+        //          }
+        //          if (what & POLLNVAL) {
+        //            info += "POLLNVAL|";
+        //          }
+        //          info += "]";
+        //          auto f = fopen("log.txt","a+");
+        //          fwrite(info.c_str(),1,info.length(),f);
+        //        }
+
+        if (what & (POLLIN | POLLHUP | POLLERR)) {
           res |= EV_READ;
         }
         if (what & POLLOUT) {
@@ -53,7 +67,6 @@ TimePoint Poll::PollEvents(int timeout, EventList* event_list) {
       }
     }
   } else if (active_events == 0) {
-    log_trace("Poll::PollEvents nothing io events happened!");
     log_debug("[Poll::PollEvents]->now have %d events in loop", pfds_.size());
   } else {
     log_error("Poll::PollEvents error while poll... errno=%d errmsg=%s", errno,
@@ -90,8 +103,6 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     // before SetIndex pdf was pushed to vector
     io_event->SetIndex((int)pfds_.size() - 1);
     io_events_map.emplace(io_event->GetFd(), io_event);
-    log_trace("Poll::RegisterEvent new event:fd = %d events=%d revents=%d",
-              io_event->GetFd(), io_event->GetEvents(), io_event->GetRevents());
   } else {
     assert(io_events_map.find(io_event->GetFd()) != io_events_map.end());
     assert(io_events_map[io_event->GetFd()] == io_event);
@@ -102,21 +113,17 @@ void Poll::RegisterEvent(IoEvent* io_event) {
     assert(pfd.fd == io_event->GetFd() || pfd.fd == -io_event->GetFd() - 1);
     short events = io_event->GetEvents();
     pfd.fd = io_event->GetFd();
-    pfd.events = EV_NONE;
-    pfd.revents = EV_NONE;
     if (events & EV_READ) {
       pfd.events |= POLLIN;
     }
     if (events & EV_WRITE) {
       pfd.events |= POLLOUT;
     }
-    if (pfd.events == EV_NONE) {
+    if (events == EV_NONE) {
       pfd.fd = -io_event->GetFd() - 1;
+      pfd.events = 0;
+      pfd.revents = 0;
     }
-    log_trace(
-        "Poll::RegisterEvent update event: fd = %d event:events=0x%x pfd "
-        "events=0x%x",
-        io_event->GetFd(), io_event->GetEvents(), pfd.events);
   }
 }
 
@@ -141,8 +148,6 @@ void Poll::UnRegisterEvent(IoEvent* io_event) {
     assert(n == 1);
     (void)n;
     if (idx == pfds_.size() - 1) {
-      log_trace("Poll::UnRegisterEvent remove fd = %d back = %d", fd,
-                pfds_.back());
       pfds_.pop_back();
     } else {
       // remove fd from pfds( O(1) )
@@ -155,8 +160,6 @@ void Poll::UnRegisterEvent(IoEvent* io_event) {
       }
       // change idx
       io_events_map[end_fd]->SetIndex(idx);
-      log_trace("Poll::UnRegisterEvent remove fd = %d end fd = %d back = %d",
-                fd, end_fd, pfds_.back());
       pfds_.pop_back();
     }
   } else {
@@ -182,5 +185,6 @@ void Poll::ReventsToString(short revent) {
     info += "POLLNVAL|";
   }
   info += "]";
-  log_debug("revents=%s", info.c_str());
+
+  log_info("revents=%s", info.c_str());
 }
